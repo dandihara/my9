@@ -5,6 +5,7 @@ import 'package:seungyo_mobile_app/core/theme/app_theme.dart';
 import 'package:seungyo_mobile_app/features/auth/login_page.dart';
 import 'package:seungyo_mobile_app/features/auth/signup_page.dart';
 import 'package:seungyo_mobile_app/shared/widgets/main_menu_button.dart';
+import 'package:seungyo_mobile_app/shared/widgets/home_weather_backdrop.dart';
 import 'package:seungyo_mobile_app/shared/widgets/stadium_shell.dart';
 
 void main() {
@@ -119,4 +120,64 @@ void main() {
     await tester.pump(const Duration(milliseconds: 900));
     expect(tester.takeException(), isNull);
   });
+
+  for (final viewport in const [
+    Size(390, 844),
+    Size(430, 932),
+  ]) {
+    testWidgets(
+      'mascot menu has no right overflow at ${viewport.width.toInt()} width',
+      (tester) async {
+        await setViewport(tester, viewport, textScale: 1.25);
+        await tester.pumpWidget(
+          app(
+            Scaffold(
+              body: GridView.count(
+                padding: const EdgeInsets.all(16),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: .72,
+                children: [
+                  for (var index = 0; index < 6; index++)
+                    MainMenuButton(
+                      title: '시즌 기록',
+                      subtitle: '타자·투수 세이버메트릭스',
+                      icon: Icons.stadium_rounded,
+                      assetPath: 'assets/mascot_schedule.png',
+                      tint: index.isEven ? AppColors.leaf : AppColors.butter,
+                      onTap: () {},
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 900));
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final condition in const [
+    'clear',
+    'cloudy',
+    'rain',
+    'snow',
+    'night',
+    'spring',
+    'summer',
+    'autumn',
+    'winter',
+  ]) {
+    testWidgets('home $condition backdrop renders without exception',
+        (tester) async {
+      await setViewport(tester, const Size(430, 932));
+      await tester.pumpWidget(
+        app(HomeWeatherBackdrop(condition: condition)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

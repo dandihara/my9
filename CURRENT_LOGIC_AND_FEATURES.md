@@ -1,6 +1,6 @@
 # MY9 현행 로직 및 기능 설명서
 
-> 기준 버전: Android `0.1.0+1` / API `0.1.0`
+> 기준 버전: Android `0.1.0+2` / API `0.1.0`
 > 작성 기준일: 2026-07-26
 > 구성: Flutter 앱 + FastAPI API + APScheduler 데이터 워커 + PostgreSQL + Redis
 
@@ -10,6 +10,7 @@
 flowchart LR
     APP["Flutter Android 앱"] -->|JWT / HTTP| API["FastAPI :8000"]
     API --> DB[("PostgreSQL")]
+    API -->|오늘 경기 구장 날씨 / 20분 캐시| WEATHER["Open-Meteo"]
     WORKER["Data Worker"] -->|KBO 일정·결과·박스스코어 수집| KBO["KBO 웹"]
     WORKER --> DB
     API -. 향후 캐시·큐 .-> REDIS[("Redis")]
@@ -35,9 +36,19 @@ flowchart LR
 
 - 응원팀의 시즌 순위, 승·패·무, 승률 표시
 - 최근 완료 경기 5개를 한 줄에 유지하고 다음 경기 표시
+- 오늘 응원팀 경기가 있으면 해당 구장의 현재 날씨를 20분 캐시해 홈 배경에 반영
+- 경기 없음/날씨 실패 시 봄·여름·가을·겨울 계절별 야구장 배경 사용
+- 맑음·흐림·비·눈·야간 상태에 따라 배경 그라데이션과 애니메이션 변경
 - 경기 일정, 직관 기록, 시즌 기록, WPA 분석, 팀 순위, 직관 리그 진입
 - 응원팀에 따라 4개 메인 섹션 아이콘 변경
-- 두산은 기본 아이콘 세트와 반달곰 아이콘 세트를 토글하여 한 번에 4종 변경
+- 두산 기본값은 반달곰 4종 아이콘
+- 테마 토글 포함 빌드에서는 기존 아이콘 세트와 반달곰 세트를 한 번에 4종 변경
+
+### 로그인
+
+- 상단 전광판 배지는 `PLAY BALL · MY9`로 표시
+- 소개 문구, 로그인 폼, 회원가입 동선만 유지
+- 실제 동작이 없던 하단 일정·직관·기록 장식 버튼은 제거
 
 ### 경기 일정과 경기 기록
 
@@ -104,7 +115,7 @@ flowchart LR
   - 화면 최대 콘텐츠 폭 760px
   - 태블릿에서는 콘텐츠를 가운데 정렬
   - 시스템 글자 배율을 0.9~1.22 범위로 제한해 극단적 레이아웃 파손 방지
-- 320px 폭에서는 카드 내부 여백과 아이콘 영역을 축소
+- 500px 미만 2열 화면에서는 카드 내부 여백·아이콘 영역을 축소하고 우측 블록 배지를 숨김
 - 긴 값은 `Expanded`, 줄바꿈, 스크롤, 카드 그리드를 사용해 오버플로 방지
 - 검증 해상도:
   - 320×568
@@ -157,6 +168,15 @@ flowchart LR
 
 ## 5. 시즌 지표 계산
 
+### 시즌 누적·전환 원칙
+
+- 경기 원본은 `games.season_year`를 기준으로 연도별 영구 누적한다.
+- 선수 시즌 집계는 `(season_year, player_id, team_id)` 단위로 격리한다.
+- 일반 경기 갱신은 해당 경기의 시즌 집계만 재생성하며 과거 시즌을 삭제하지 않는다.
+- 새 시즌 첫 일정이 확인되면 새 `season_backfill:{연도}` 작업을 생성한다.
+- 과거 시즌 보정은 `python -m worker.backfill_history --season-year {연도}`처럼 명시적으로 수행한다.
+- API의 시즌 조회는 `season_year`가 없으면 최신 시즌, 있으면 지정 시즌을 사용한다.
+
 ### 타자
 
 - `AVG = H / AB`
@@ -203,7 +223,7 @@ flowchart LR
 | 경기 | `GET /v1/games/{id}/live` | 실시간 상태 |
 | 팀 | `GET /v1/teams` | 응원팀 선택 |
 | 팀 | `GET /v1/teams/standings` | 순위표 |
-| 팀 | `GET /v1/teams/{id}/dashboard` | 홈 전광판 |
+| 팀 | `GET /v1/teams/{id}/dashboard` | 홈 전광판·오늘 경기 구장 날씨 |
 | 팀 | `GET /v1/teams/{id}/season` | 팀 시즌 상세 |
 | 직관 | `POST/GET /v1/attendances` | 직관 생성/목록 |
 | 직관 | `GET /v1/attendances/summary` | 승요·TOP3·결승타 |
@@ -218,11 +238,15 @@ flowchart LR
 ## 8. 네트워크와 APK
 
 - 로컬 API용 APK와 외부 API용 APK는 빌드 시 `API_BASE_URL`로 주소를 각각 주입
+- `ENABLE_DOOSAN_THEME_TOGGLE` 빌드 플래그로 두산 전용 4종 아이콘 테마 토글 포함 여부를 결정
+- external 일반 버전은 두산 반달곰 세트를 고정 사용
+- external Doosan Theme 버전은 반달곰이 기본이며 두산 선택 시에만 기존 세트 전환 토글을 표시
 - 실제 주소는 소스·문서·Git 이력에 저장하지 않음
 - Docker API는 `0.0.0.0:8000`에 공개
+- VS Code 로컬 Uvicorn 디버그는 Docker와 충돌하지 않도록 8001 사용
 - 공유기 포트포워딩: 외부 TCP 8000 → API 노트북의 사설 주소 TCP 8000
 - Windows 방화벽: TCP 8000 인바운드 허용
-- `mobile-app/build-debug-apks.bat`로 두 APK를 연속 생성
+- `mobile-app/build-debug-apks.bat`로 로컬 1개와 external 2개를 연속 생성
 
 공인 IP와 노트북 사설 IP가 DHCP로 바뀌면 APK 또는 공유기 설정도 갱신해야 한다.
 AWS 이전 후에는 고정 도메인과 HTTPS 적용을 권장한다.
@@ -256,7 +280,14 @@ deploy-images-ecr.bat latest
 - 외부 접속은 HTTP이므로 운영 전 HTTPS 종단(ALB/Nginx/Caddy 등)이 필요
 - 공인 IP 직접 사용 대신 도메인 또는 동적 DNS 권장
 - KBO HTML 구조가 바뀌면 셀렉터 보정 필요
-- 실시간 10초 조회는 경기 시간대에만 동작하지만, 향후 날씨 API를 연결하면 우천 가능 경기만
-  더 촘촘하게 확인하는 정책을 추가할 수 있음
-- 티켓 구매 링크, 직관 대결 고도화, 날씨/우천 알림은 2차 업데이트 후보
+- 실시간 10초 조회는 경기 시간대에만 동작한다. 현재 홈 날씨는 20분 캐시이며,
+  향후 강수 경기의 워커 갱신 주기와 우천 알림을 연동할 수 있다.
+- 티켓 구매 링크, 직관 대결 고도화, 우천 푸시 알림은 2차 업데이트 후보
 - WPA 원천 이벤트는 공식 제공 형태가 안정적이지 않으므로 이벤트 공급원 또는 전용 어댑터 보강 필요
+
+## 11. 문서 동기화 규칙
+
+- DB 모델·Alembic 변경: `DATABASE_ERD_AND_USAGE.md`의 ERD와 테이블 사용처를 같은 커밋에서 수정
+- 워커·집계·API·앱 기능 변경: 이 문서의 해당 로직과 API 표를 같은 커밋에서 수정
+- 버전 변경: 이 문서와 루트 `README.md`의 현재 버전을 함께 수정
+- 코드 리뷰 시 위 세 항목을 변경 체크리스트로 확인

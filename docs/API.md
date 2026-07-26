@@ -11,7 +11,11 @@ GET /health
 ```txt
 GET /v1/teams
 GET /v1/teams/{team_id}
+GET /v1/teams/{team_id}/dashboard
 ```
+
+`dashboard` 응답은 오늘 응원팀 경기가 있고 구장 위치를 확인할 수 있으면
+`stadium_weather`를 포함한다. 날씨는 비영속 20분 캐시이며 실패해도 전광판 응답은 정상 반환한다.
 
 ## Stadiums
 

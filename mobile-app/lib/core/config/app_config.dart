@@ -3,4 +3,9 @@ class AppConfig {
     'API_BASE_URL',
     defaultValue: 'http://10.0.2.2:8000',
   );
+
+  static const bool enableDoosanThemeToggle = bool.fromEnvironment(
+    'ENABLE_DOOSAN_THEME_TOGGLE',
+    defaultValue: true,
+  );
 }

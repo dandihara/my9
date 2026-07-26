@@ -11,6 +11,7 @@ MY9은 경기 일정·결과, 나의 직관 승률, 시즌 세이버메트릭스
 
 - KBO 월별 일정, 실시간 경기 상태와 최종 결과
 - 응원팀 순위, 최근 5경기와 다음 경기
+- 오늘 경기 구장 날씨와 계절별 홈 배경
 - 직관 경기·좌석·메모 기록과 나의 승·무·패
 - 직관 경기 기준 타자/투수 TOP 3와 결승타 순위
 - 타자 AVG·OBP·SLG·OPS·안타·도루·추정 wRC+
@@ -94,7 +95,7 @@ Android 에뮬레이터에서 호스트 API에 접근할 때는 `127.0.0.1` 대�
 
 ## Debug APK 빌드
 
-Windows에서 Wi-Fi용과 외부 접속용 APK를 한 번에 빌드할 수 있습니다.
+Windows에서 Wi-Fi용 1개와 외부 접속용 2개를 한 번에 빌드할 수 있습니다.
 
 ```bat
 cd mobile-app
@@ -115,6 +116,10 @@ build-debug-apks.bat http://LOCAL_API_HOST:8000 https://PUBLIC_API_HOST
 ```
 
 APK는 `mobile-app/build/app/outputs/flutter-apk/`에 생성되며 Git에는 포함되지 않습니다.
+
+- `MY9-local-debug.apk`: Wi-Fi/로컬 API, 두산 테마 토글 포함
+- `MY9-external-debug.apk`: 외부 API, 두산 반달곰 테마 고정(토글 없음)
+- `MY9-external-doosan-theme-debug.apk`: 외부 API, 반달곰 기본 + 두산 선택 시에만 테마 토글 표시
 
 ## 데이터 동기화
 
@@ -180,7 +185,14 @@ deploy-images-ecr.bat v0.1.0
 - API/Worker: 각 `pyproject.toml` 버전
 - DB: Alembic revision
 
-현재 최초 공식 릴리스는 앱 `0.1.0+1`, API/Worker `0.1.0`, Git 태그 `v0.1.0`입니다.
+현재 최초 공식 릴리스 계열은 앱 `0.1.0+2`, API/Worker `0.1.0`, Git 태그 `v0.1.0`입니다.
+
+## 변경 체크리스트
+
+- DB 모델·Alembic을 바꾸면 `DATABASE_ERD_AND_USAGE.md`의 ERD/사용처도 같은 커밋에서 수정
+- 수집·집계·API·앱 로직을 바꾸면 `CURRENT_LOGIC_AND_FEATURES.md`도 같은 커밋에서 수정
+- 앱/API/Worker 버전을 바꾸면 README와 현행 로직 문서의 기준 버전도 함께 수정
+- 실제 서버 주소와 비밀값은 `.env`에만 두고 Git에 포함하지 않음
 
 ## 주의
 

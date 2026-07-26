@@ -17,6 +17,7 @@ from app.schemas.team import (
     TeamSeasonSummaryRead,
     TeamStandingsRead,
 )
+from app.services.weather import fetch_stadium_weather
 
 router = APIRouter()
 KST = ZoneInfo("Asia/Seoul")
@@ -262,7 +263,7 @@ async def get_team_dashboard(
         for item in (await db.execute(select(Team))).scalars().all()
     }
     stadiums = {
-        item.id: item.name
+        item.id: item
         for item in (await db.execute(select(Stadium))).scalars().all()
     }
     team_games = list(
@@ -290,7 +291,11 @@ async def get_team_dashboard(
             game_time=game.game_time,
             opponent_name=teams[opponent_id],
             is_home=is_home,
-            stadium_name=stadiums.get(game.stadium_id),
+            stadium_name=(
+                stadiums[game.stadium_id].name
+                if game.stadium_id in stadiums
+                else None
+            ),
             my_score=my_score,
             opponent_score=opponent_score,
             result=result,
@@ -310,10 +315,35 @@ async def get_team_dashboard(
         ),
         key=lambda game: (game.game_date, game.game_time or datetime.max.time()),
     )
+    today_games = [
+        game
+        for game in team_games
+        if game.game_date == today and game.status not in {"cancelled", "postponed"}
+    ]
+    weather_game = (
+        next((game for game in today_games if game.status == "in_progress"), None)
+        or next((game for game in today_games if game.status == "scheduled"), None)
+        or max(
+            today_games,
+            key=lambda game: (game.game_time or datetime.min.time(), game.id),
+            default=None,
+        )
+    )
+    stadium_weather = None
+    if (
+        weather_game is not None
+        and weather_game.stadium_id is not None
+        and weather_game.stadium_id in stadiums
+    ):
+        stadium_weather = await fetch_stadium_weather(
+            stadiums[weather_game.stadium_id],
+            game_id=weather_game.id,
+        )
     return TeamDashboardRead(
         summary=summary,
         recent_games=[read_game(game) for game in completed],
         next_game=read_game(upcoming[0]) if upcoming else None,
+        stadium_weather=stadium_weather,
     )
 
 

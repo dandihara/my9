@@ -66,6 +66,7 @@ chrome-profile/
 
 # Generated visual QA/intermediate assets
 icon-contact-sheet.jpg
+mobile-app/test/failures/
 mobile-app/assets/team_icons/sections/*chroma*.png
 mobile-app/assets/team_icons/sections/*fixed*.png
 mobile-app/assets/team_icons/sections/*preview*.png

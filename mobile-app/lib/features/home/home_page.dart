@@ -3,9 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/main_menu_button.dart';
+import '../../shared/widgets/home_weather_backdrop.dart';
 import '../../shared/widgets/team_brand.dart';
 import '../auth/auth_controller.dart';
 
@@ -18,7 +20,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const _doosanThemeKey = 'home_doosan_bear_theme';
-  bool _doosanBearTheme = false;
+  bool _doosanBearTheme = true;
+  Map<String, dynamic>? _stadiumWeather;
 
   @override
   void initState() {
@@ -30,7 +33,9 @@ class _HomePageState extends State<HomePage> {
     final preferences = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _doosanBearTheme = preferences.getBool(_doosanThemeKey) ?? false;
+        _doosanBearTheme = AppConfig.enableDoosanThemeToggle
+            ? preferences.getBool(_doosanThemeKey) ?? true
+            : true;
       });
     }
   }
@@ -40,6 +45,16 @@ class _HomePageState extends State<HomePage> {
     setState(() => _doosanBearTheme = next);
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_doosanThemeKey, next);
+  }
+
+  void _updateStadiumWeather(Map<String, dynamic>? weather) {
+    final previous = _stadiumWeather?['condition'];
+    final next = weather?['condition'];
+    if (previous == next &&
+        _stadiumWeather?['game_id'] == weather?['game_id']) {
+      return;
+    }
+    if (mounted) setState(() => _stadiumWeather = weather);
   }
 
   Future<void> _openMyTeam(BuildContext context) async {
@@ -121,108 +136,133 @@ class _HomePageState extends State<HomePage> {
                 section,
                 doosanBearTheme: _doosanBearTheme,
               );
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('MY9'),
-            actions: [
-              if (isDoosan)
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: IconButton.filledTonal(
-                    tooltip: _doosanBearTheme ? '기존 캐릭터 테마로 변경' : '반달곰 테마로 변경',
-                    onPressed: _toggleDoosanTheme,
-                    icon: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 240),
-                      transitionBuilder: (child, animation) =>
-                          ScaleTransition(scale: animation, child: child),
-                      child: Icon(
-                        _doosanBearTheme
-                            ? Icons.pets_rounded
-                            : Icons.auto_awesome_rounded,
-                        key: ValueKey(_doosanBearTheme),
+        final weatherCondition = _stadiumWeather?['condition']?.toString() ??
+            _seasonalBackdropCondition(DateTime.now().month);
+        final darkWeather =
+            weatherCondition == 'night' || weatherCondition == 'rain';
+        final weatherForeground = darkWeather ? Colors.white : AppColors.ink;
+        final weatherButtonStyle = IconButton.styleFrom(
+          foregroundColor: weatherForeground,
+          backgroundColor:
+              Colors.white.withValues(alpha: darkWeather ? .16 : .5),
+        );
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: HomeWeatherBackdrop(condition: weatherCondition),
+            ),
+            Scaffold(
+              appBar: AppBar(
+                foregroundColor: weatherForeground,
+                title: Text(
+                  'MY9',
+                  style: TextStyle(color: weatherForeground, fontFamily: 'Jua'),
+                ),
+                actions: [
+                  if (isDoosan && AppConfig.enableDoosanThemeToggle)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: IconButton.filledTonal(
+                        style: weatherButtonStyle,
+                        tooltip:
+                            _doosanBearTheme ? '기존 캐릭터 테마로 변경' : '반달곰 테마로 변경',
+                        onPressed: _toggleDoosanTheme,
+                        icon: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 240),
+                          transitionBuilder: (child, animation) =>
+                              ScaleTransition(scale: animation, child: child),
+                          child: Icon(
+                            _doosanBearTheme
+                                ? Icons.pets_rounded
+                                : Icons.auto_awesome_rounded,
+                            key: ValueKey(_doosanBearTheme),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: IconButton.filledTonal(
-                  tooltip: '로그아웃',
-                  onPressed: AuthController.instance.logout,
-                  icon: const Icon(Icons.logout_rounded),
-                ),
-              ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-            children: [
-              _TeamDashboardCard(
-                key: ValueKey(user.myTeamId),
-                teamId: user.myTeamId,
-                nickname: user.nickname ?? user.username,
-                onSetTeam: () => _openMyTeam(context),
-                onOpenTeam: () => context.push('/my-team'),
-              ),
-              const SizedBox(height: 24),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: .72,
-                children: [
-                  MainMenuButton(
-                    title: '경기 일정',
-                    subtitle: '전체 일정과 결과',
-                    icon: Icons.calendar_month_rounded,
-                    assetPath: sectionAsset(TeamIconSection.schedule),
-                    tint: AppColors.leaf,
-                    onTap: () => context.push('/schedule'),
-                  ),
-                  MainMenuButton(
-                    title: '직관 기록',
-                    subtitle: '메모와 추억 모아보기',
-                    icon: Icons.confirmation_number_rounded,
-                    assetPath: sectionAsset(TeamIconSection.attendance),
-                    tint: AppColors.butter,
-                    onTap: () => context.push('/attendance'),
-                  ),
-                  MainMenuButton(
-                    title: '시즌 기록',
-                    subtitle: '타자·투수 세이버메트릭스',
-                    icon: Icons.insights_rounded,
-                    assetPath: sectionAsset(TeamIconSection.stats),
-                    tint: const Color(0xFFB9E8DF),
-                    onTap: () => context.push('/stats'),
-                  ),
-                  MainMenuButton(
-                    title: 'WPA 분석',
-                    subtitle: '승부 흐름과 기여도',
-                    icon: Icons.timeline_rounded,
-                    assetPath: sectionAsset(TeamIconSection.wpa),
-                    tint: const Color(0xFFFFC5B8),
-                    onTap: () => context.push('/wpa'),
-                  ),
-                  MainMenuButton(
-                    title: '팀 순위',
-                    subtitle: '현재 시즌 순위표',
-                    icon: Icons.emoji_events_rounded,
-                    tint: const Color(0xFFFFD98E),
-                    onTap: () => context.push('/standings'),
-                  ),
-                  MainMenuButton(
-                    title: '직관 리그',
-                    subtitle: '친구들과 승·무·패 대결',
-                    icon: Icons.groups_rounded,
-                    tint: const Color(0xFFBDE8FF),
-                    onTap: () => context.push('/attendance-leagues'),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: IconButton.filledTonal(
+                      style: weatherButtonStyle,
+                      tooltip: '로그아웃',
+                      onPressed: AuthController.instance.logout,
+                      icon: const Icon(Icons.logout_rounded),
+                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+              body: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                children: [
+                  _TeamDashboardCard(
+                    key: ValueKey(user.myTeamId),
+                    teamId: user.myTeamId,
+                    nickname: user.nickname ?? user.username,
+                    onSetTeam: () => _openMyTeam(context),
+                    onOpenTeam: () => context.push('/my-team'),
+                    onWeatherChanged: _updateStadiumWeather,
+                  ),
+                  const SizedBox(height: 24),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: .72,
+                    children: [
+                      MainMenuButton(
+                        title: '경기 일정',
+                        subtitle: '전체 일정과 결과',
+                        icon: Icons.calendar_month_rounded,
+                        assetPath: sectionAsset(TeamIconSection.schedule),
+                        tint: AppColors.leaf,
+                        onTap: () => context.push('/schedule'),
+                      ),
+                      MainMenuButton(
+                        title: '직관 기록',
+                        subtitle: '메모와 추억 모아보기',
+                        icon: Icons.confirmation_number_rounded,
+                        assetPath: sectionAsset(TeamIconSection.attendance),
+                        tint: AppColors.butter,
+                        onTap: () => context.push('/attendance'),
+                      ),
+                      MainMenuButton(
+                        title: '시즌 기록',
+                        subtitle: '타자·투수 세이버메트릭스',
+                        icon: Icons.insights_rounded,
+                        assetPath: sectionAsset(TeamIconSection.stats),
+                        tint: const Color(0xFFB9E8DF),
+                        onTap: () => context.push('/stats'),
+                      ),
+                      MainMenuButton(
+                        title: 'WPA 분석',
+                        subtitle: '승부 흐름과 기여도',
+                        icon: Icons.timeline_rounded,
+                        assetPath: sectionAsset(TeamIconSection.wpa),
+                        tint: const Color(0xFFFFC5B8),
+                        onTap: () => context.push('/wpa'),
+                      ),
+                      MainMenuButton(
+                        title: '팀 순위',
+                        subtitle: '현재 시즌 순위표',
+                        icon: Icons.emoji_events_rounded,
+                        tint: const Color(0xFFFFD98E),
+                        onTap: () => context.push('/standings'),
+                      ),
+                      MainMenuButton(
+                        title: '직관 리그',
+                        subtitle: '친구들과 승·무·패 대결',
+                        icon: Icons.groups_rounded,
+                        tint: const Color(0xFFBDE8FF),
+                        onTap: () => context.push('/attendance-leagues'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
@@ -235,6 +275,7 @@ class _TeamDashboardCard extends StatefulWidget {
     required this.nickname,
     required this.onSetTeam,
     required this.onOpenTeam,
+    required this.onWeatherChanged,
     super.key,
   });
 
@@ -242,6 +283,7 @@ class _TeamDashboardCard extends StatefulWidget {
   final String nickname;
   final VoidCallback onSetTeam;
   final VoidCallback onOpenTeam;
+  final ValueChanged<Map<String, dynamic>?> onWeatherChanged;
 
   @override
   State<_TeamDashboardCard> createState() => _TeamDashboardCardState();
@@ -263,7 +305,13 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
     }
     _dashboard = ApiClient.instance.dio
         .get<Map<String, dynamic>>('/v1/teams/${widget.teamId}/dashboard')
-        .then((response) => response.data!);
+        .then((response) {
+      final data = response.data!;
+      widget.onWeatherChanged(
+        data['stadium_weather'] as Map<String, dynamic>?,
+      );
+      return data;
+    });
   }
 
   @override
@@ -579,6 +627,13 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
     );
   }
 }
+
+String _seasonalBackdropCondition(int month) => switch (month) {
+      >= 3 && <= 5 => 'spring',
+      >= 6 && <= 8 => 'summer',
+      >= 9 && <= 11 => 'autumn',
+      _ => 'winter',
+    };
 
 class _RecentGameChip extends StatelessWidget {
   const _RecentGameChip({required this.game});

@@ -233,20 +233,6 @@ class _LoginPageState extends State<LoginPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _FeatureChip(
-                            icon: Icons.calendar_month_rounded, label: '일정'),
-                        SizedBox(width: 8),
-                        _FeatureChip(
-                            icon: Icons.local_activity_rounded, label: '직관'),
-                        SizedBox(width: 8),
-                        _FeatureChip(
-                            icon: Icons.auto_graph_rounded, label: '기록'),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -280,10 +266,17 @@ class _GateBadge extends StatelessWidget {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.stadium_rounded, color: AppColors.butter, size: 17),
+            _ScoreboardLight(color: AppColors.coral),
+            SizedBox(width: 5),
+            _ScoreboardLight(color: AppColors.butter),
+            SizedBox(width: 5),
+            _ScoreboardLight(color: AppColors.leaf),
+            SizedBox(width: 9),
+            Icon(Icons.sports_baseball_rounded,
+                color: AppColors.butter, size: 17),
             SizedBox(width: 7),
             Text(
-              'GATE 09 · MY9',
+              'PLAY BALL · MY9',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 11,
@@ -298,32 +291,23 @@ class _GateBadge extends StatelessWidget {
   }
 }
 
-class _FeatureChip extends StatelessWidget {
-  const _FeatureChip({required this.icon, required this.label});
+class _ScoreboardLight extends StatelessWidget {
+  const _ScoreboardLight({required this.color});
 
-  final IconData icon;
-  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      width: 5,
+      height: 5,
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: .88),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.forest, size: 15),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: .55),
+            blurRadius: 5,
           ),
         ],
       ),

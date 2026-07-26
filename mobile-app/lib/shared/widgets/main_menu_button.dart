@@ -47,8 +47,10 @@ class _MainMenuButtonState extends State<MainMenuButton>
 
   @override
   Widget build(BuildContext context) {
-    final iconScale = responsiveIconSize(context, 1);
-    final compact = MediaQuery.sizeOf(context).width < 350;
+    final compact = MediaQuery.sizeOf(context).width < 500;
+    final iconScale = responsiveIconSize(context, 1)
+        .clamp(.88, compact ? .96 : 1.08)
+        .toDouble();
     final cardPadding = compact ? 12.0 : 18.0;
     final iconAreaHeight = compact ? 62.0 : 76.0;
     final iconAreaWidth = compact ? 70.0 : 92.0;

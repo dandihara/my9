@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time
 
 from pydantic import BaseModel
 
@@ -58,7 +58,19 @@ class TeamDashboardGameRead(BaseModel):
     result: str | None = None
 
 
+class StadiumWeatherRead(BaseModel):
+    condition: str
+    temperature_c: float | None = None
+    weather_code: int | None = None
+    is_day: bool = True
+    stadium_name: str
+    game_id: int
+    source: str = "Open-Meteo"
+    fetched_at: datetime
+
+
 class TeamDashboardRead(BaseModel):
     summary: TeamSeasonSummaryRead
     recent_games: list[TeamDashboardGameRead]
     next_game: TeamDashboardGameRead | None = None
+    stadium_weather: StadiumWeatherRead | None = None
