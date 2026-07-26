@@ -1,0 +1,91 @@
+name: seungyo_mobile_app
+description: MY9 baseball attendance and player analytics app
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  dio: ^5.7.0
+  go_router: ^14.2.7
+  table_calendar: ^3.1.2
+  intl: ^0.19.0
+  shared_preferences: ^2.3.2
+  share_plus: ^10.0.2
+  path_provider: ^2.1.4
+  firebase_messaging: ^15.1.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/app_icon.png
+    - assets/app_icon_neutral.png
+    - assets/app_icon_doosan.png
+    - assets/login_hero.png
+    - assets/mascot_schedule.png
+    - assets/mascot_attendance.png
+    - assets/mascot_live.png
+    - assets/mascot_stats.png
+    - assets/team_icons/
+    - assets/team_icons/sections/doosan_bear_schedule.png
+    - assets/team_icons/sections/doosan_bear_attendance.png
+    - assets/team_icons/sections/doosan_bear_stats.png
+    - assets/team_icons/sections/doosan_bear_wpa.png
+    - assets/team_icons/sections/lg_schedule.png
+    - assets/team_icons/sections/lg_attendance.png
+    - assets/team_icons/sections/lg_stats.png
+    - assets/team_icons/sections/lg_wpa.png
+    - assets/team_icons/sections/samsung_schedule.png
+    - assets/team_icons/sections/samsung_attendance.png
+    - assets/team_icons/sections/samsung_stats.png
+    - assets/team_icons/sections/samsung_wpa.png
+    - assets/team_icons/sections/kiwoom_schedule.png
+    - assets/team_icons/sections/kiwoom_attendance.png
+    - assets/team_icons/sections/kiwoom_stats.png
+    - assets/team_icons/sections/kiwoom_wpa.png
+    - assets/team_icons/sections/ssg_schedule.png
+    - assets/team_icons/sections/ssg_attendance.png
+    - assets/team_icons/sections/ssg_stats.png
+    - assets/team_icons/sections/ssg_wpa.png
+    - assets/team_icons/sections/kt_schedule.png
+    - assets/team_icons/sections/kt_attendance.png
+    - assets/team_icons/sections/kt_stats.png
+    - assets/team_icons/sections/kt_wpa.png
+    - assets/team_icons/sections/lotte_schedule.png
+    - assets/team_icons/sections/lotte_attendance.png
+    - assets/team_icons/sections/lotte_stats.png
+    - assets/team_icons/sections/lotte_wpa.png
+    - assets/team_icons/sections/kia_schedule.png
+    - assets/team_icons/sections/kia_attendance.png
+    - assets/team_icons/sections/kia_stats.png
+    - assets/team_icons/sections/kia_wpa.png
+    - assets/team_icons/sections/hanwha_schedule.png
+    - assets/team_icons/sections/hanwha_attendance.png
+    - assets/team_icons/sections/hanwha_stats.png
+    - assets/team_icons/sections/hanwha_wpa.png
+    - assets/team_icons/sections/nc_schedule.png
+    - assets/team_icons/sections/nc_attendance.png
+    - assets/team_icons/sections/nc_stats.png
+    - assets/team_icons/sections/nc_wpa.png
+  fonts:
+    - family: Jua
+      fonts:
+        - asset: assets/fonts/Jua-Regular.ttf
+    - family: GowunDodum
+      fonts:
+        - asset: assets/fonts/GowunDodum-Regular.ttf
+
+flutter_launcher_icons:
+  android: true
+  image_path: assets/app_icon_neutral.png
+  min_sdk_android: 21

@@ -1,0 +1,72 @@
+# Local secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.local
+**/local.properties
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+.venv*/
+venv/
+env/
+*.egg-info/
+
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/coverage/
+**/build/
+*.apk
+*.aab
+*.symbols
+*.map.json
+
+# Android signing and generated files
+*.jks
+*.keystore
+key.properties
+**/android/.gradle/
+**/android/captures/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
+# IDE and OS files
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.tmp
+*.bak
+*.log
+
+# Runtime data and local browser profiles
+postgres_data/
+redis_data/
+.chrome-profile/
+chrome-profile/
+.selenium-cache/
+
+# Generated visual QA/intermediate assets
+icon-contact-sheet.jpg
+mobile-app/assets/team_icons/sections/*chroma*.png
+mobile-app/assets/team_icons/sections/*fixed*.png
+mobile-app/assets/team_icons/sections/*preview*.png
+mobile-app/assets/*chroma*.png

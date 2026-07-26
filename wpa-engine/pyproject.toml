@@ -1,0 +1,6 @@
+[project]
+name = "seungyo-wpa-engine"
+version = "0.1.0"
+description = "WPA calculation engine for baseball games"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.8.0"]
