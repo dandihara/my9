@@ -43,6 +43,33 @@ class WorkerJobs:
             finally:
                 await self._close_browser()
 
+    async def sync_upcoming_schedule(self) -> None:
+        async with self.lock:
+            today = datetime.now(KST).date()
+            end_date = today + timedelta(days=settings.startup_future_schedule_days)
+            current = today
+            failures = 0
+            while current <= end_date:
+                try:
+                    count = await sync_schedule(self.source, current)
+                    logger.info(
+                        "upcoming schedule sync date=%s games=%s",
+                        current,
+                        count,
+                    )
+                except Exception:
+                    failures += 1
+                    logger.exception("upcoming schedule sync failed date=%s", current)
+                    await self._close_browser()
+                current += timedelta(days=1)
+            await self._close_browser()
+            logger.info(
+                "upcoming schedule sync finished range=%s..%s failures=%s",
+                today,
+                end_date,
+                failures,
+            )
+
     @staticmethod
     def _has_pollable_game(now: datetime) -> bool:
         with get_conn() as conn:
@@ -286,6 +313,16 @@ async def main() -> None:
         misfire_grace_time=300,
     )
     scheduler.add_job(
+        jobs.sync_upcoming_schedule,
+        "cron",
+        hour=6,
+        minute=10,
+        id="sync_upcoming_schedule_daily",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    scheduler.add_job(
         jobs.sync_started_game_boxscores,
         "cron",
         minute="*/10",
@@ -306,6 +343,7 @@ async def main() -> None:
     scheduler.start()
     try:
         await jobs.backfill_recent_data()
+        await jobs.sync_upcoming_schedule()
         await jobs.sync_today_schedule()
         await jobs.sync_yesterday_boxscores()
         while True:

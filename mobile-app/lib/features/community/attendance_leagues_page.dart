@@ -31,27 +31,80 @@ class _AttendanceLeaguesPageState extends State<AttendanceLeaguesPage> {
 
   Future<void> _inputDialog({required bool join}) async {
     final controller = TextEditingController();
-    final value = await showDialog<String>(
+    final value = await showModalBottomSheet<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(join ? '초대 코드로 참가' : '새 직관 리그'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: join ? 20 : 60,
-          decoration: InputDecoration(labelText: join ? '초대 코드' : '모임 이름'),
+      isScrollControlled: true,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            14,
+            20,
+            20 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 42,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.line,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                join ? '초대 코드로 참가' : '새 직관 리그',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              maxLength: join ? 20 : 60,
+              textInputAction: TextInputAction.done,
+              decoration:
+                  InputDecoration(labelText: join ? '초대 코드' : '모임 이름'),
+              onSubmitted: (_) =>
+                  Navigator.pop(context, controller.text.trim()),
+            ),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('취소'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () =>
+                      Navigator.pop(context, controller.text.trim()),
+                  child: Text(join ? '참가' : '만들기'),
+                ),
+              ),
+            ]),
+          ]),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: Text(join ? '참가' : '만들기')),
-        ],
       ),
     );
     controller.dispose();
     if (value == null || value.isEmpty) return;
+    if (!join && value.length < 2) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('모임 이름은 2자 이상 입력해 주세요.')),
+        );
+      }
+      return;
+    }
     try {
       if (join) {
         await ApiClient.instance.dio

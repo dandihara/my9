@@ -18,6 +18,7 @@ dependencies:
   share_plus: ^10.0.2
   path_provider: ^2.1.4
   firebase_messaging: ^15.1.3
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -37,10 +38,10 @@ flutter:
     - assets/mascot_live.png
     - assets/mascot_stats.png
     - assets/team_icons/
-    - assets/team_icons/sections/doosan_bear_schedule.png
-    - assets/team_icons/sections/doosan_bear_attendance.png
-    - assets/team_icons/sections/doosan_bear_stats.png
-    - assets/team_icons/sections/doosan_bear_wpa.png
+    - assets/team_icons/sections/doosan_cheolwoong_schedule.png
+    - assets/team_icons/sections/doosan_cheolwoong_attendance.png
+    - assets/team_icons/sections/doosan_cheolwoong_stats.png
+    - assets/team_icons/sections/doosan_cheolwoong_wpa.png
     - assets/team_icons/sections/lg_schedule.png
     - assets/team_icons/sections/lg_attendance.png
     - assets/team_icons/sections/lg_stats.png

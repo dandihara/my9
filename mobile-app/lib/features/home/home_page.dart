@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
@@ -19,32 +18,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const _doosanThemeKey = 'home_doosan_bear_theme';
-  bool _doosanBearTheme = true;
   Map<String, dynamic>? _stadiumWeather;
 
   @override
   void initState() {
     super.initState();
-    _loadDoosanTheme();
-  }
-
-  Future<void> _loadDoosanTheme() async {
-    final preferences = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _doosanBearTheme = AppConfig.enableDoosanThemeToggle
-            ? preferences.getBool(_doosanThemeKey) ?? true
-            : true;
-      });
-    }
-  }
-
-  Future<void> _toggleDoosanTheme() async {
-    final next = !_doosanBearTheme;
-    setState(() => _doosanBearTheme = next);
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(_doosanThemeKey, next);
   }
 
   void _updateStadiumWeather(Map<String, dynamic>? weather) {
@@ -126,15 +104,12 @@ class _HomePageState extends State<HomePage> {
       builder: (context, _) {
         final user = AuthController.instance.user!;
         final myTeamName = AuthController.instance.myTeamName;
-        final isDoosan = myTeamName != null &&
-            (myTeamName.contains('두산') ||
-                myTeamName.toUpperCase().contains('DOOSAN'));
         String sectionAsset(TeamIconSection section) => myTeamName == null
             ? teamSectionAssetPath('', section)
             : teamSectionAssetPath(
                 myTeamName,
                 section,
-                doosanBearTheme: _doosanBearTheme,
+                doosanMangomTheme: AppConfig.useDoosanMangomSections,
               );
         final weatherCondition = _stadiumWeather?['condition']?.toString() ??
             _seasonalBackdropCondition(DateTime.now().month);
@@ -159,27 +134,6 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(color: weatherForeground, fontFamily: 'Jua'),
                 ),
                 actions: [
-                  if (isDoosan && AppConfig.enableDoosanThemeToggle)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: IconButton.filledTonal(
-                        style: weatherButtonStyle,
-                        tooltip:
-                            _doosanBearTheme ? '기존 캐릭터 테마로 변경' : '반달곰 테마로 변경',
-                        onPressed: _toggleDoosanTheme,
-                        icon: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 240),
-                          transitionBuilder: (child, animation) =>
-                              ScaleTransition(scale: animation, child: child),
-                          child: Icon(
-                            _doosanBearTheme
-                                ? Icons.pets_rounded
-                                : Icons.auto_awesome_rounded,
-                            key: ValueKey(_doosanBearTheme),
-                          ),
-                        ),
-                      ),
-                    ),
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: IconButton.filledTonal(
@@ -579,42 +533,55 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
                           ],
                         ),
                       const SizedBox(height: 15),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: .14),
-                          borderRadius: BorderRadius.circular(17),
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: .09)),
-                        ),
-                        child: Row(children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: .14),
-                              borderRadius: BorderRadius.circular(10),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: next == null
+                            ? null
+                            : () {
+                                final date = next['game_date'] as String;
+                                final gameId = next['game_id'] as int?;
+                                final suffix = gameId == null
+                                    ? 'date=$date'
+                                    : 'date=$date&gameId=$gameId';
+                                context.push('/schedule?$suffix');
+                              },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: .14),
+                            borderRadius: BorderRadius.circular(17),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: .09)),
+                          ),
+                          child: Row(children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: .14),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.calendar_month_rounded,
+                                  color: Colors.white, size: 17),
                             ),
-                            child: const Icon(Icons.calendar_month_rounded,
-                                color: Colors.white, size: 17),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: next == null
-                                ? const Text('예정된 다음 경기가 없습니다.',
-                                    style: TextStyle(color: Colors.white))
-                                : Text(
-                                    '${DateFormat('M.d').format(DateTime.parse(next['game_date'] as String))} · vs ${next['opponent_name']}',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w900),
-                                  ),
-                          ),
-                          const Icon(Icons.arrow_forward_rounded,
-                              color: Colors.white70, size: 18),
-                        ]),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: next == null
+                                  ? const Text('예정된 다음 경기가 없습니다.',
+                                      style: TextStyle(color: Colors.white))
+                                  : Text(
+                                      '${DateFormat('M.d').format(DateTime.parse(next['game_date'] as String))} · vs ${next['opponent_name']}',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900),
+                                    ),
+                            ),
+                            const Icon(Icons.arrow_forward_rounded,
+                                color: Colors.white70, size: 18),
+                          ]),
+                        ),
                       ),
                     ],
                   ),

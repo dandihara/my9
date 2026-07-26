@@ -39,11 +39,19 @@ GET /v1/games/{game_id}/boxscore
 ```txt
 POST /v1/attendances
 GET /v1/attendances
+GET /v1/attendances/summary
 GET /v1/attendances/calendar?year=2026&month=6
 GET /v1/attendances/{attendance_id}
 PUT /v1/attendances/{attendance_id}
 DELETE /v1/attendances/{attendance_id}
 ```
+
+`GET /v1/attendances`는 각 기록의 홈/원정 팀 ID와 이름을 함께 내려준다. 앱은 이 값으로
+과거 직관의 상대 팀을 계산한다.
+
+`summary`는 직관 승률, 요일/구장별 승률, 누계형 타자/투수 TOP5, 결승타 순위를 반환한다.
+직관 화면에서는 짧은 표본에서도 해석 가능한 홈런, 타점, 안타, 도루, 탈삼진, 홀드 같은 누계
+기록을 우선 사용한다.
 
 ## WPA
 

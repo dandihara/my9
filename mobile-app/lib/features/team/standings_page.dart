@@ -225,11 +225,26 @@ class _StandingCard extends StatelessWidget {
                 ]),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
+            _TeamMetricSection(
+              title: '승부 요약',
+              icon: Icons.scoreboard_rounded,
+              accent: brand.primary,
+              metrics: [
+                ('순위', '${row['rank']}위'),
+                ('승률', '${row['win_rate']}%'),
+                ('승패', '${row['wins']}승 ${row['losses']}패'),
+                ('무승부', row['draws']),
+                ('최근 10G',
+                    '${row['recent_10_wins']}승 ${row['recent_10_draws']}무 ${row['recent_10_losses']}패'),
+                ('득실차', row['run_difference']),
+              ],
+            ),
+            const SizedBox(height: 12),
             _TeamMetricSection(
               title: '팀 타격',
               icon: Icons.sports_baseball_rounded,
-              accent: brand.primary,
+              accent: AppColors.forest,
               metrics: [
                 ('타율', row['team_batting_average']),
                 ('홈런', row['team_home_runs']),
@@ -243,7 +258,7 @@ class _StandingCard extends StatelessWidget {
             _TeamMetricSection(
               title: '팀 투수',
               icon: Icons.speed_rounded,
-              accent: brand.secondary,
+              accent: brand.primary,
               metrics: [
                 ('ERA', row['team_era']),
                 ('WHIP', row['team_whip']),
@@ -253,14 +268,16 @@ class _StandingCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _TeamMetricSection(
-              title: '득실과 흐름',
+              title: '득점 생산',
               icon: Icons.trending_up_rounded,
-              accent: AppColors.forest,
+              accent: AppColors.coral,
               metrics: [
                 ('득점', row['runs_scored']),
                 ('실점', row['runs_allowed']),
-                ('득실차', row['run_difference']),
-                ('승률', '${row['win_rate']}%'),
+                ('경기당 득점',
+                    _perGame(row['runs_scored'] as num?, row['games'] as num?)),
+                ('경기당 실점',
+                    _perGame(row['runs_allowed'] as num?, row['games'] as num?)),
               ],
             ),
           ],
@@ -272,49 +289,125 @@ class _StandingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brand = TeamBrand.resolve(row['team_name'] as String);
+    final teamName = row['team_name'] as String;
     return Card(
       child: InkWell(
         onTap: () => _showTeamDetails(context),
         borderRadius: BorderRadius.circular(24),
         child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Row(children: [
+          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
             SizedBox(
-              width: 32,
-              child: Text('${row['rank']}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: brand.primary, fontFamily: 'Jua', fontSize: 23)),
+              width: 30,
+              child: Text(
+                '${row['rank']}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: brand.primary,
+                  fontFamily: 'Jua',
+                  fontSize: 24,
+                  height: 1,
+                ),
+              ),
             ),
             const SizedBox(width: 8),
-            TeamMascotIcon(teamName: row['team_name'] as String, size: 48),
-            const SizedBox(width: 11),
+            TeamMascotIcon(teamName: teamName, size: 50),
+            const SizedBox(width: 12),
             Expanded(
+              flex: 11,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(row['team_name'] as String,
-                      style: const TextStyle(fontWeight: FontWeight.w900)),
-                  Text('${row['wins']}승 ${row['losses']}패 ${row['draws']}무',
-                      style: const TextStyle(
-                          color: AppColors.muted, fontSize: 12)),
+                  Text(
+                    teamName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      height: 1.12,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      _MiniStatPill(
+                        text:
+                            '${row['wins']}승 ${row['losses']}패 ${row['draws']}무',
+                        color: brand.primary,
+                      ),
+                      _MiniStatPill(
+                        text:
+                            '10G ${row['recent_10_wins']}-${row['recent_10_draws']}-${row['recent_10_losses']}',
+                        color: AppColors.forest,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${row['win_rate']}%',
-                  style: const TextStyle(
-                      color: AppColors.forest,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900)),
-              Text(
-                  '최근 10경기 ${row['recent_10_wins']}승 ${row['recent_10_draws']}무 ${row['recent_10_losses']}패',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 10)),
-            ]),
-            const SizedBox(width: 2),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 70,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${row['win_rate']}%',
+                      style: const TextStyle(
+                        color: AppColors.forest,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const Text(
+                    '승률',
+                    style: TextStyle(color: AppColors.muted, fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
             const Icon(Icons.chevron_right_rounded,
                 color: AppColors.muted, size: 19),
           ]),
+        ),
+      ),
+    );
+  }
+}
+
+String _perGame(num? value, num? games) {
+  final denominator = games?.toDouble() ?? 0;
+  if (denominator <= 0) return '0.0';
+  return ((value?.toDouble() ?? 0) / denominator).toStringAsFixed(1);
+}
+
+class _MiniStatPill extends StatelessWidget {
+  const _MiniStatPill({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

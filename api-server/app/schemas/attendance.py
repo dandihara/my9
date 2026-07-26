@@ -37,7 +37,9 @@ class AttendanceRead(BaseModel):
     memo: str | None = None
     rating: int | None = None
     game_date: date | None = None
+    away_team_id: int | None = None
     away_team_name: str | None = None
+    home_team_id: int | None = None
     home_team_name: str | None = None
 
     model_config = {"from_attributes": True}
@@ -54,6 +56,7 @@ class AttendanceBattingLeader(BaseModel):
     hr: int
     rbi: int
     bb: int
+    sb: int
     obp: float
     slg: float
     ops: float
@@ -66,6 +69,7 @@ class AttendancePitchingLeader(BaseModel):
     team_name: str
     games: int
     wins: int
+    holds: int
     innings_pitched: float
     strikeouts: int
     era: float

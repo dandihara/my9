@@ -161,10 +161,10 @@ String? _teamAssetKey(String teamName) {
 String teamSectionAssetPath(
   String teamName,
   TeamIconSection section, {
-  bool doosanBearTheme = false,
+  bool doosanMangomTheme = false,
 }) {
   final key = _teamAssetKey(teamName);
-  if (key == 'doosan' && !doosanBearTheme) {
+  if (key == 'doosan' && doosanMangomTheme) {
     return switch (section) {
       TeamIconSection.schedule => 'assets/mascot_schedule.png',
       TeamIconSection.attendance => 'assets/mascot_attendance.png',
@@ -180,7 +180,7 @@ String teamSectionAssetPath(
       TeamIconSection.wpa => 'assets/mascot_live.png',
     };
   }
-  final assetKey = key == 'doosan' ? 'doosan_bear' : key;
+  final assetKey = key == 'doosan' ? 'doosan_cheolwoong' : key;
   return 'assets/team_icons/sections/${assetKey}_${section.name}.png';
 }
 

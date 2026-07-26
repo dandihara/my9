@@ -20,6 +20,7 @@ class WorkerSettings(BaseSettings):
     chrome_boxscore_settle_seconds: float = 0.2
     chrome_cache_ttl_seconds: int = 30
     startup_backfill_days: int = 30
+    startup_future_schedule_days: int = 30
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

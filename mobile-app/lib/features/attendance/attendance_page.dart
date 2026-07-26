@@ -17,6 +17,8 @@ class AttendancePage extends StatefulWidget {
 
 class _AttendancePageState extends State<AttendancePage> {
   late Future<_AttendanceData> _data;
+  String _resultFilter = 'all';
+  bool _showOpponentRecords = false;
 
   @override
   void initState() {
@@ -65,6 +67,7 @@ class _AttendancePageState extends State<AttendancePage> {
           }
           final data = snapshot.data!;
           if (data.records.isEmpty) return const _EmptyAttendance();
+          final records = _filteredRecords(data.records);
           return RefreshIndicator(
             onRefresh: () async {
               setState(_reload);
@@ -72,19 +75,37 @@ class _AttendancePageState extends State<AttendancePage> {
             },
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              itemCount: data.records.length + 1,
+              itemCount: records.length + 2,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return _AttendanceReveal(
                     index: index,
-                    child: _AttendanceInsightCard(summary: data.summary),
+                    child: _AttendanceInsightCard(
+                      summary: data.summary,
+                      records: data.records,
+                      showOpponentRecords: _showOpponentRecords,
+                      onToggleOpponentRecords: () => setState(
+                        () => _showOpponentRecords = !_showOpponentRecords,
+                      ),
+                    ),
+                  );
+                }
+                if (index == 1) {
+                  return _AttendanceReveal(
+                    index: index,
+                    child: _AttendanceListFilter(
+                      selected: _resultFilter,
+                      counts: _resultCounts(data.records),
+                      onSelected: (value) =>
+                          setState(() => _resultFilter = value),
+                    ),
                   );
                 }
                 return _AttendanceReveal(
                   index: index,
                   child: _AttendanceCard(
-                      record: data.records[index - 1], onDelete: _delete),
+                      record: records[index - 2], onDelete: _delete),
                 );
               },
             ),
@@ -92,6 +113,24 @@ class _AttendancePageState extends State<AttendancePage> {
         },
       ),
     );
+  }
+
+  List<AttendanceModel> _filteredRecords(List<AttendanceModel> records) {
+    if (_resultFilter == 'all') return records;
+    return records
+        .where((record) => record.resultForMyTeam == _resultFilter)
+        .toList();
+  }
+
+  Map<String, int> _resultCounts(List<AttendanceModel> records) {
+    final counts = {'all': records.length, 'win': 0, 'draw': 0, 'loss': 0};
+    for (final record in records) {
+      final result = record.resultForMyTeam;
+      if (result != null && counts.containsKey(result)) {
+        counts[result] = counts[result]! + 1;
+      }
+    }
+    return counts;
   }
 }
 
@@ -102,14 +141,24 @@ class _AttendanceData {
 }
 
 class _AttendanceInsightCard extends StatelessWidget {
-  const _AttendanceInsightCard({required this.summary});
+  const _AttendanceInsightCard({
+    required this.summary,
+    required this.records,
+    required this.showOpponentRecords,
+    required this.onToggleOpponentRecords,
+  });
   final Map<String, dynamic> summary;
+  final List<AttendanceModel> records;
+  final bool showOpponentRecords;
+  final VoidCallback onToggleOpponentRecords;
 
   @override
   Widget build(BuildContext context) {
     final hitters =
         summary['top_batting_players'] as List<dynamic>? ?? const [];
     final pitchers = summary['top_pitchers'] as List<dynamic>;
+    final decisiveHitLeaders =
+        summary['decisive_hit_leaders'] as List<dynamic>? ?? const [];
     final weekdays = (summary['weekday_records'] as List<dynamic>? ?? const []);
     final stadiums = (summary['stadium_records'] as List<dynamic>? ?? const []);
     final qualifiedGames = summary['qualified_games'] as int;
@@ -157,6 +206,12 @@ class _AttendanceInsightCard extends StatelessWidget {
           const SizedBox(height: 12),
           _RecordBreakdown(title: '구장별 승률', items: stadiums),
         ],
+        const SizedBox(height: 12),
+        _OpponentSummary(
+          records: records,
+          expanded: showOpponentRecords,
+          onToggle: onToggleOpponentRecords,
+        ),
         const SizedBox(height: 20),
         Divider(color: Colors.white.withValues(alpha: .14), height: 1),
         const SizedBox(height: 18),
@@ -170,13 +225,17 @@ class _AttendanceInsightCard extends StatelessWidget {
                   fontWeight: FontWeight.w900)),
         ]),
         const SizedBox(height: 14),
-        if (hitters.isEmpty && pitchers.isEmpty)
+        if (hitters.isEmpty && pitchers.isEmpty && decisiveHitLeaders.isEmpty)
           const Text('응원팀이 지정된 완료 경기부터 선수 기록이 집계됩니다.',
               style: TextStyle(color: Colors.white60, height: 1.5))
         else ...[
-          _GuardianSection(title: '타자 TOP 3', items: hitters),
+          _GuardianSection(
+            title: '타자 TOP 5',
+            items: hitters,
+            decisiveHitLeaders: decisiveHitLeaders,
+          ),
           const SizedBox(height: 12),
-          _GuardianSection(title: '투수 TOP 3', items: pitchers),
+          _GuardianSection(title: '투수 TOP 5', items: pitchers),
         ],
       ]),
     );
@@ -240,27 +299,206 @@ class _RecordBreakdown extends StatelessWidget {
       );
 }
 
+class _OpponentSummary extends StatelessWidget {
+  const _OpponentSummary({
+    required this.records,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final List<AttendanceModel> records;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = <String, List<int>>{};
+    for (final record in records) {
+      final result = record.resultForMyTeam;
+      if (result == null || record.myTeamId == null) continue;
+      final opponent = _opponentName(record);
+      if (opponent == null) continue;
+      final bucket = values.putIfAbsent(opponent, () => [0, 0, 0]);
+      if (result == 'win') {
+        bucket[0] += 1;
+      } else if (result == 'draw') {
+        bucket[1] += 1;
+      } else if (result == 'loss') {
+        bucket[2] += 1;
+      }
+    }
+    final rows = values.entries.map((entry) {
+      final wins = entry.value[0];
+      final draws = entry.value[1];
+      final losses = entry.value[2];
+      final decisions = wins + losses;
+      return (
+        name: entry.key,
+        wins: wins,
+        draws: draws,
+        losses: losses,
+        games: wins + draws + losses,
+        rate: decisions == 0 ? 0.0 : wins / decisions * 100,
+      );
+    }).toList()
+      ..sort((a, b) {
+        final rateCompare = b.rate.compareTo(a.rate);
+        if (rateCompare != 0) return rateCompare;
+        return b.games.compareTo(a.games);
+      });
+    if (rows.isEmpty) return const SizedBox.shrink();
+    final visible = expanded ? rows : rows.take(4).toList();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Text(
+          '상대 구단별 기록',
+          style: TextStyle(
+            color: Colors.white70,
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+          ),
+        ),
+        const Spacer(),
+        TextButton(
+          onPressed: onToggle,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.butter,
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(44, 30),
+          ),
+          child: Text(expanded ? '접기' : '전체'),
+        ),
+      ]),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final row in visible)
+            Container(
+              width: 150,
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .09),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    row.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    '${row.rate.toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      color: AppColors.butter,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    '${row.wins}승 ${row.draws}무 ${row.losses}패',
+                    style: const TextStyle(color: Colors.white54, fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    ]);
+  }
+
+  String? _opponentName(AttendanceModel record) {
+    if (record.myTeamId == record.homeTeamId) return record.awayTeamName;
+    if (record.myTeamId == record.awayTeamId) return record.homeTeamName;
+    return null;
+  }
+}
+
+class _AttendanceListFilter extends StatelessWidget {
+  const _AttendanceListFilter({
+    required this.selected,
+    required this.counts,
+    required this.onSelected,
+  });
+
+  final String selected;
+  final Map<String, int> counts;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: SegmentedButton<String>(
+          segments: [
+            _segment('all', '전체', counts['all'] ?? 0),
+            _segment('win', '승', counts['win'] ?? 0),
+            _segment('draw', '무', counts['draw'] ?? 0),
+            _segment('loss', '패', counts['loss'] ?? 0),
+          ],
+          selected: {selected},
+          onSelectionChanged: (values) => onSelected(values.first),
+        ),
+      ),
+    );
+  }
+
+  ButtonSegment<String> _segment(String value, String label, int count) {
+    return ButtonSegment<String>(
+      value: value,
+      label: Text('$label $count'),
+    );
+  }
+}
+
 class _GuardianSection extends StatelessWidget {
-  const _GuardianSection({required this.title, required this.items});
+  const _GuardianSection({
+    required this.title,
+    required this.items,
+    this.decisiveHitLeaders = const [],
+  });
   final String title;
   final List<dynamic> items;
+  final List<dynamic> decisiveHitLeaders;
 
   List<Map<String, dynamic>> _top(String key) {
+    if (key == 'decisive_hits') {
+      final values =
+          decisiveHitLeaders.map((item) => item as Map<String, dynamic>).toList();
+      values.sort((a, b) =>
+          ((b['count'] as num?) ?? 0).compareTo((a['count'] as num?) ?? 0));
+      return values.take(5).toList();
+    }
     final values = items.map((item) => item as Map<String, dynamic>).toList();
-    final sortKey = key == 'basic' ? 'innings_pitched' : key;
+    final sortKey = key == 'innings' ? 'innings_pitched' : key;
     values.sort((a, b) =>
         ((b[sortKey] as num?) ?? 0).compareTo((a[sortKey] as num?) ?? 0));
-    return values.take(3).toList();
+    return values.take(5).toList();
   }
 
   String _display(Map<String, dynamic> player, String key) {
-    if (key == 'basic') {
+    if (key == 'innings') {
       return '${player['innings_pitched']}이닝 · ${player['wins'] ?? 0}승 · ERA ${player['era']}';
     }
+    if (key == 'decisive_hits') return '${player['count'] ?? 0}개';
+    if (key == 'strikeouts') return '${player['strikeouts'] ?? 0}개';
+    if (key == 'holds') return '${player['holds'] ?? 0}개';
+    if (key == 'wins') return '${player['wins'] ?? 0}승';
+    if (key == 'hr') return '${player['hr'] ?? 0}개';
+    if (key == 'rbi') return '${player['rbi'] ?? 0}점';
+    if (key == 'h') return '${player['h'] ?? 0}개';
+    if (key == 'sb') return '${player['sb'] ?? 0}개';
     final value = (player[key] as num?)?.toDouble() ?? 0;
-    return key == 'k_per_nine'
-        ? 'K/9 ${value.toStringAsFixed(2)}'
-        : value.toStringAsFixed(3);
+    return value.toStringAsFixed(3);
   }
 
   @override
@@ -269,14 +507,17 @@ class _GuardianSection extends StatelessWidget {
         (items.first as Map<String, dynamic>).containsKey('k_per_nine');
     final tabs = isPitching
         ? const [
-            ('기본 기록', '투구 이닝·승수·ERA를 함께 확인해요', 'basic'),
-            ('탈삼진', '9이닝 기준 탈삼진 수(K/9)', 'k_per_nine'),
-            ('피안타율', '상대한 타자 중 안타를 허용한 비율', 'batting_average_against'),
+            ('탈삼진', '내가 본 경기에서 삼진을 잡은 누계', 'strikeouts'),
+            ('홀드', '리드를 지킨 중간 투수의 홀드 누계', 'holds'),
+            ('승수', '내가 본 경기에서 기록한 승리 누계', 'wins'),
+            ('이닝', '내가 본 경기에서 던진 이닝 누계', 'innings'),
           ]
         : const [
-            ('OPS', '출루율과 장타율을 더한 종합 타격 지표', 'ops'),
-            ('출루율', '타석에서 얼마나 자주 출루했는지', 'obp'),
-            ('장타율', '타수 대비 평균적으로 몇 루를 얻었는지', 'slg'),
+            ('홈런', '내가 본 경기에서 친 홈런 누계', 'hr'),
+            ('타점', '내가 본 경기에서 올린 타점 누계', 'rbi'),
+            ('안타', '내가 본 경기에서 친 안타 누계', 'h'),
+            ('도루', '내가 본 경기에서 성공한 도루 누계', 'sb'),
+            ('결승타', '승리팀 리드를 끝까지 만든 타점성 이벤트 누계', 'decisive_hits'),
           ];
     return DefaultTabController(
       length: tabs.length,
@@ -298,7 +539,7 @@ class _GuardianSection extends StatelessWidget {
           tabs: [for (final tab in tabs) Tab(text: tab.$1)],
         ),
         SizedBox(
-          height: 205,
+          height: 295,
           child: TabBarView(children: [
             for (final tab in tabs)
               TweenAnimationBuilder<double>(
@@ -321,7 +562,14 @@ class _GuardianSection extends StatelessWidget {
                           style: const TextStyle(
                               color: Colors.white54, fontSize: 11)),
                       const SizedBox(height: 7),
-                      Container(
+                      if (_top(tab.$3).isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 22),
+                          child: Text('아직 집계된 선수가 없습니다.',
+                              style: TextStyle(color: Colors.white54)),
+                        )
+                      else
+                        Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 13, vertical: 9),
                         decoration: BoxDecoration(

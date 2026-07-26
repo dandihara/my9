@@ -17,11 +17,12 @@ Windows에서는 루트 `.env`의 로컬/외부 API 주소를 읽어 3종을 생
 build-debug-apks.bat
 ```
 
-- `MY9-local-debug.apk`: 로컬 API, 두산 테마 토글 포함
-- `MY9-external-debug.apk`: 외부 API, 두산 반달곰 테마 고정
-- `MY9-external-doosan-theme-debug.apk`: 외부 API, 반달곰 기본 + 두산 전용 토글
+- `MY9-local-debug.apk`: 로컬 API, 두산 철웅이 섹션 아이콘
+- `MY9-external-cheolwoong-debug.apk`: 외부 API, 두산 철웅이 섹션 아이콘
+- `MY9-external-mangom-debug.apk`: 외부 API, 두산 망곰 섹션 아이콘
 
-두산 토글은 `ENABLE_DOOSAN_THEME_TOGGLE` 빌드 플래그로 결정하며 다른 구단에서는 노출되지 않는다.
+두산 섹션 아이콘은 런타임 토글 없이 `DOOSAN_SECTION_THEME=cheolwoong|mangom`
+빌드 플래그로 고정한다.
 
 iOS는 같은 Flutter 소스를 사용하지만 IPA 빌드·서명은 macOS, Xcode와 Apple Developer 인증서가 필요하다.
 

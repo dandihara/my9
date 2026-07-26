@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/game.dart';
 import '../../core/models/attendance.dart';
@@ -14,7 +15,10 @@ import '../../shared/widgets/team_brand.dart';
 import '../auth/auth_controller.dart';
 
 class SchedulePage extends StatefulWidget {
-  const SchedulePage({super.key});
+  const SchedulePage({this.initialDate, this.highlightGameId, super.key});
+
+  final DateTime? initialDate;
+  final int? highlightGameId;
 
   @override
   State<SchedulePage> createState() => _SchedulePageState();
@@ -34,6 +38,10 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialDate != null) {
+      _focusedDay = widget.initialDate!;
+      _selectedDay = widget.initialDate!;
+    }
     _loadMonth(_focusedDay);
     _loadAttendances();
   }
@@ -274,6 +282,8 @@ class _SchedulePageState extends State<SchedulePage> {
                                 const SizedBox(height: 10),
                             itemBuilder: (context, index) => _GameCard(
                               game: selectedGames[index],
+                              highlighted: selectedGames[index].id ==
+                                  widget.highlightGameId,
                               status: _status(selectedGames[index].status),
                               statusColor:
                                   _statusColor(selectedGames[index].status),
@@ -290,12 +300,14 @@ class _SchedulePageState extends State<SchedulePage> {
 class _GameCard extends StatelessWidget {
   const _GameCard({
     required this.game,
+    required this.highlighted,
     required this.status,
     required this.statusColor,
     required this.onAttendanceSaved,
   });
 
   final GameModel game;
+  final bool highlighted;
   final String status;
   final Color statusColor;
   final Future<void> Function() onAttendanceSaved;
@@ -303,6 +315,7 @@ class _GameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: highlighted ? AppColors.leaf.withValues(alpha: .32) : null,
       child: InkWell(
         onTap: () => context.push('/games/${game.id}'),
         borderRadius: BorderRadius.circular(24),
@@ -365,6 +378,13 @@ class _GameCard extends StatelessWidget {
                       onPressed: () => context.push('/games/${game.id}'),
                       icon: const Icon(Icons.query_stats_rounded, size: 18),
                       label: const Text('선수 기록')),
+                  if (_ticketUrl(game.homeTeamName) != null)
+                    TextButton.icon(
+                      onPressed: () => _openTicket(context),
+                      icon: const Icon(Icons.confirmation_number_rounded,
+                          size: 18),
+                      label: const Text('예매'),
+                    ),
                   const Spacer(),
                   FilledButton.tonalIcon(
                       onPressed: () async {
@@ -389,6 +409,36 @@ class _GameCard extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _openTicket(BuildContext context) async {
+    final url = _ticketUrl(game.homeTeamName);
+    if (url == null) return;
+    final opened = await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('예매 페이지를 열지 못했어요.')),
+      );
+    }
+  }
+}
+
+String? _ticketUrl(String homeTeamName) {
+  final upper = homeTeamName.toUpperCase();
+  if (upper.contains('두산') || upper.contains('DOOSAN')) {
+    return 'https://ticket.interpark.com/Contents/Sports/GoodsInfo?SportsCode=07001&TeamCode=PB004';
+  }
+  if (upper.contains('키움') || upper.contains('KIWOOM')) {
+    return 'https://ticket.interpark.com/Contents/Sports/GoodsInfo?SportsCode=07001&TeamCode=PB003';
+  }
+  if (upper.contains('SSG')) return 'https://www.ssglanders.com/ticket/ticket';
+  if (upper.contains('롯데') || upper.contains('LOTTE')) {
+    return 'https://www.giantsclub.com/html/?pcode=257';
+  }
+  if (upper.contains('NC')) return 'https://www.ncdinos.com/ticket/guide';
+  return 'https://www.ticketlink.co.kr/sports/baseball';
 }
 
 class _TeamName extends StatelessWidget {

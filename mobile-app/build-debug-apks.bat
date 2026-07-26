@@ -35,28 +35,28 @@ pushd "%APP_DIR%"
 if errorlevel 1 exit /b 1
 
 echo [1/3] Building local API debug APK...
-call flutter build apk --debug --dart-define=API_BASE_URL=%LOCAL_API_URL% --dart-define=ENABLE_DOOSAN_THEME_TOGGLE=true
+call flutter build apk --debug --dart-define=API_BASE_URL=%LOCAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=cheolwoong
 if errorlevel 1 goto :failed
 copy /Y "build\app\outputs\flutter-apk\app-debug.apk" "build\app\outputs\flutter-apk\MY9-local-debug.apk" >nul
 if errorlevel 1 goto :failed
 
-echo [2/3] Building external API debug APK without theme toggle...
-call flutter build apk --debug --dart-define=API_BASE_URL=%EXTERNAL_API_URL% --dart-define=ENABLE_DOOSAN_THEME_TOGGLE=false
+echo [2/3] Building external API debug APK with Cheolwoong Doosan sections...
+call flutter build apk --debug --dart-define=API_BASE_URL=%EXTERNAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=cheolwoong
 if errorlevel 1 goto :failed
-copy /Y "build\app\outputs\flutter-apk\app-debug.apk" "build\app\outputs\flutter-apk\MY9-external-debug.apk" >nul
+copy /Y "build\app\outputs\flutter-apk\app-debug.apk" "build\app\outputs\flutter-apk\MY9-external-cheolwoong-debug.apk" >nul
 if errorlevel 1 goto :failed
 
-echo [3/3] Building external API debug APK with Doosan theme toggle...
-call flutter build apk --debug --dart-define=API_BASE_URL=%EXTERNAL_API_URL% --dart-define=ENABLE_DOOSAN_THEME_TOGGLE=true
+echo [3/3] Building external API debug APK with Mangom Doosan sections...
+call flutter build apk --debug --dart-define=API_BASE_URL=%EXTERNAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=mangom
 if errorlevel 1 goto :failed
-copy /Y "build\app\outputs\flutter-apk\app-debug.apk" "build\app\outputs\flutter-apk\MY9-external-doosan-theme-debug.apk" >nul
+copy /Y "build\app\outputs\flutter-apk\app-debug.apk" "build\app\outputs\flutter-apk\MY9-external-mangom-debug.apk" >nul
 if errorlevel 1 goto :failed
 
 echo.
 echo Build complete:
 echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-local-debug.apk
-echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-external-debug.apk
-echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-external-doosan-theme-debug.apk
+echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-external-cheolwoong-debug.apk
+echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-external-mangom-debug.apk
 popd
 exit /b 0
 

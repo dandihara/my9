@@ -64,8 +64,19 @@ final router = GoRouter(
         path: '/',
         pageBuilder: (context, state) => _page(state, const HomePage())),
     GoRoute(
-        path: '/schedule',
-        pageBuilder: (context, state) => _page(state, const SchedulePage())),
+      path: '/schedule',
+      pageBuilder: (context, state) => _page(
+        state,
+        SchedulePage(
+          initialDate: state.uri.queryParameters['date'] == null
+              ? null
+              : DateTime.tryParse(state.uri.queryParameters['date']!),
+          highlightGameId: int.tryParse(
+            state.uri.queryParameters['gameId'] ?? '',
+          ),
+        ),
+      ),
+    ),
     GoRoute(
       path: '/games/:gameId',
       pageBuilder: (context, state) => _page(

@@ -62,7 +62,9 @@ def _read(record: AttendanceRecord, game: Game, away_name: str, home_name: str) 
     return AttendanceRead(
         **values,
         game_date=game.game_date,
+        away_team_id=game.away_team_id,
         away_team_name=away_name,
+        home_team_id=game.home_team_id,
         home_team_name=home_name,
     )
 
@@ -237,7 +239,7 @@ async def attendance_summary(
         }
         for (player_id, player_name, team_name), count in sorted(
             decisive_hit_counts.items(), key=lambda item: (-item[1], item[0][1])
-        )[:3]
+        )[:5]
     ]
 
     wins = losses = draws = 0
@@ -295,12 +297,13 @@ async def attendance_summary(
                     "bb": 0,
                     "hbp": 0,
                     "sf": 0,
+                    "sb": 0,
                 },
             )
             item["games"] = int(item["games"]) + 1
             for field in (
                 "ab", "r", "h", "doubles", "triples", "hr", "rbi",
-                "bb", "hbp", "sf",
+                "bb", "hbp", "sf", "sb",
             ):
                 item[field] = int(item[field]) + int(getattr(stat, field) or 0)
 
@@ -332,6 +335,7 @@ async def attendance_summary(
                 hr=int(item["hr"]),
                 rbi=int(item["rbi"]),
                 bb=int(item["bb"]),
+                sb=int(item["sb"]),
                 obp=round(obp, 3),
                 slg=round(slg, 3),
                 ops=round(obp + slg, 3),
@@ -361,6 +365,7 @@ async def attendance_summary(
                     "team_name": team_name,
                     "games": 0,
                     "wins": 0,
+                    "holds": 0,
                     "outs": 0,
                     "hits": 0,
                     "earned_runs": 0,
@@ -372,6 +377,8 @@ async def attendance_summary(
             item["games"] = int(item["games"]) + 1
             if stat.decision and "승" in stat.decision:
                 item["wins"] = int(item["wins"]) + 1
+            if stat.decision and ("홀드" in stat.decision or stat.decision.strip() == "홀"):
+                item["holds"] = int(item["holds"]) + 1
             item["outs"] = int(item["outs"]) + _outs(stat.innings_pitched)
             for field in ("hits", "earned_runs", "walks", "strikeouts", "batters_faced"):
                 item[field] = int(item[field]) + int(getattr(stat, field) or 0)
@@ -394,6 +401,7 @@ async def attendance_summary(
                 team_name=str(item["team_name"]),
                 games=int(item["games"]),
                 wins=int(item["wins"]),
+                holds=int(item["holds"]),
                 innings_pitched=float(f"{outs // 3}.{outs % 3}"),
                 strikeouts=strikeouts,
                 era=round(earned_runs * 9 / innings, 2) if innings else 0.0,

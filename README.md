@@ -13,12 +13,13 @@ MY9은 경기 일정·결과, 나의 직관 승률, 시즌 세이버메트릭스
 - 응원팀 순위, 최근 5경기와 다음 경기
 - 오늘 경기 구장 날씨와 계절별 홈 배경
 - 직관 경기·좌석·메모 기록과 나의 승·무·패
-- 직관 경기 기준 타자/투수 TOP 3와 결승타 순위
+- 직관 경기 기준 누계형 타자/투수 TOP 5, 결승타 순위와 상대 구단별 승률
 - 타자 AVG·OBP·SLG·OPS·안타·도루·추정 wRC+
 - 투수 이닝·승수·ERA·WHIP·K/9·피안타율
 - 구단 순위 및 팀 타율·홈런·ERA 등 상세 지표
 - 경기별 타자/투수 기록과 선수 교체·포지션 이동 흐름
-- 구단별 메인 아이콘과 두산 반달곰 테마
+- 경기 일정의 홈팀 기준 예매 바로가기
+- 구단별 메인 아이콘과 두산 철웅이/망곰 빌드별 섹션 테마
 - 직관 리그 생성 및 초대 코드 참가
 
 ## 구성
@@ -117,9 +118,11 @@ build-debug-apks.bat http://LOCAL_API_HOST:8000 https://PUBLIC_API_HOST
 
 APK는 `mobile-app/build/app/outputs/flutter-apk/`에 생성되며 Git에는 포함되지 않습니다.
 
-- `MY9-local-debug.apk`: Wi-Fi/로컬 API, 두산 테마 토글 포함
-- `MY9-external-debug.apk`: 외부 API, 두산 반달곰 테마 고정(토글 없음)
-- `MY9-external-doosan-theme-debug.apk`: 외부 API, 반달곰 기본 + 두산 선택 시에만 테마 토글 표시
+- `MY9-local-debug.apk`: Wi-Fi/로컬 API, 두산 철웅이 섹션 아이콘
+- `MY9-external-cheolwoong-debug.apk`: 외부 API, 두산 철웅이 섹션 아이콘
+- `MY9-external-mangom-debug.apk`: 외부 API, 두산 망곰 섹션 아이콘
+
+두산 섹션 아이콘은 런타임 토글 없이 `DOOSAN_SECTION_THEME=cheolwoong|mangom` 빌드 플래그로 고정합니다.
 
 ## 데이터 동기화
 
