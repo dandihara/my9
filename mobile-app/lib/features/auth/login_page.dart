@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/stadium_shell.dart';
@@ -14,11 +16,47 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  static const _rememberAccountKey = 'remember_account';
+  static const _rememberedUsernameKey = 'remembered_username';
+
   final _username = TextEditingController();
   final _password = TextEditingController();
   bool _submitting = false;
   bool _obscurePassword = true;
+  bool _rememberAccount = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreRememberedAccount();
+  }
+
+  Future<void> _restoreRememberedAccount() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final rememberAccount = preferences.getBool(_rememberAccountKey) ?? false;
+      if (!mounted) return;
+      setState(() {
+        _rememberAccount = rememberAccount;
+        if (rememberAccount) {
+          _username.text = preferences.getString(_rememberedUsernameKey) ?? '';
+        }
+      });
+    } on MissingPluginException {
+      // Platform storage is unavailable in lightweight widget test hosts.
+    }
+  }
+
+  Future<void> _saveRememberedAccount(String username) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_rememberAccountKey, _rememberAccount);
+    if (_rememberAccount) {
+      await preferences.setString(_rememberedUsernameKey, username);
+    } else {
+      await preferences.remove(_rememberedUsernameKey);
+    }
+  }
 
   @override
   void dispose() {
@@ -37,8 +75,9 @@ class _LoginPageState extends State<LoginPage> {
       _error = null;
     });
     try {
-      await AuthController.instance
-          .login(_username.text.trim(), _password.text);
+      final username = _username.text.trim();
+      await AuthController.instance.login(username, _password.text);
+      await _saveRememberedAccount(username);
     } on DioException catch (error) {
       setState(() => _error =
           error.response?.data?['detail']?.toString() ?? '서버 연결에 실패했습니다.');
@@ -173,6 +212,21 @@ class _LoginPageState extends State<LoginPage> {
                                       : Icons.visibility_off_rounded,
                                 ),
                               ),
+                            ),
+                          ),
+                          CheckboxListTile(
+                            value: _rememberAccount,
+                            onChanged: _submitting
+                                ? null
+                                : (value) => setState(
+                                      () => _rememberAccount = value ?? false,
+                                    ),
+                            contentPadding: EdgeInsets.zero,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            dense: true,
+                            title: const Text(
+                              '계정 기억하기',
+                              style: TextStyle(fontWeight: FontWeight.w800),
                             ),
                           ),
                           AnimatedSize(

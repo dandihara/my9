@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:seungyo_mobile_app/core/models/game.dart';
 import 'package:seungyo_mobile_app/features/auth/login_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test('game response parsing', () {
@@ -20,14 +21,31 @@ void main() {
     expect(game.homeTeamName, '한화');
   });
 
-  testWidgets('login screen renders empty credential fields', (tester) async {
+  testWidgets('login screen renders account memory option', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+    await tester.pump();
 
-    expect(find.text('MY9'), findsOneWidget);
     final fields = tester.widgetList<TextField>(find.byType(TextField));
     expect(fields.every((field) => field.controller?.text.isEmpty ?? true),
         isTrue);
-    expect(find.text('로그인'), findsOneWidget);
-    expect(find.text('처음이신가요? 회원가입'), findsOneWidget);
+    expect(find.text('계정 기억하기'), findsOneWidget);
+    expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        isFalse);
+  });
+
+  testWidgets('login screen restores a remembered account', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'remember_account': true,
+      'remembered_username': 'remember-me',
+    });
+    await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+    await tester.pump();
+
+    final fields =
+        tester.widgetList<TextField>(find.byType(TextField)).toList();
+    expect(fields.first.controller?.text, 'remember-me');
+    expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        isTrue);
   });
 }

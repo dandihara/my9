@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:seungyo_mobile_app/core/theme/app_theme.dart';
 import 'package:seungyo_mobile_app/features/auth/login_page.dart';
 import 'package:seungyo_mobile_app/features/auth/signup_page.dart';
@@ -9,6 +10,8 @@ import 'package:seungyo_mobile_app/shared/widgets/home_weather_backdrop.dart';
 import 'package:seungyo_mobile_app/shared/widgets/stadium_shell.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   setUpAll(() async {
     final jua = FontLoader('Jua')
       ..addFont(rootBundle.load('assets/fonts/Jua-Regular.ttf'));
