@@ -173,6 +173,8 @@ async def season_batting(
                 bb=metric.bb,
                 hbp=metric.hbp,
                 sf=metric.sf,
+                sh=metric.sh,
+                ci=metric.ci,
                 so=metric.so,
                 sb=metric.sb,
                 avg=_float(metric.avg),
@@ -195,6 +197,7 @@ async def season_batting(
         as_of_date=await _as_of_date(db, season_year),
         methodology=(
             "시즌 집계 테이블의 AVG·OBP·SLG·OPS와 추정 wOBA·wRC입니다. "
+            "규정타석은 팀 경기 수×3.1을 가장 가까운 정수로 반올림합니다. "
             "현재 시즌은 자정 동기화 후 재계산되고 과거 시즌은 고정됩니다."
         ),
         players=players,
@@ -271,6 +274,7 @@ async def season_pitching(
         as_of_date=await _as_of_date(db, season_year),
         methodology=(
             "시즌 집계 테이블의 ERA·WHIP·K/9·BB/9·K/BB·FIP·K-BB%입니다. "
+            "규정이닝은 팀 경기 수와 같은 이닝 수입니다. "
             "현재 시즌은 자정 동기화 후 재계산되고 과거 시즌은 고정됩니다."
         ),
         players=players,

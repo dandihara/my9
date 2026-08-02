@@ -287,9 +287,7 @@ class _StatsPageState extends State<StatsPage> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
               children: [
                 _StatsHeader(
-                    season: source['season_year'] as int,
-                    playerCount: players.length,
-                    pitching: _pitching),
+                    season: source['season_year'] as int, pitching: _pitching),
                 const SizedBox(height: 12),
                 Card(
                   child: Padding(
@@ -336,9 +334,6 @@ class _StatsPageState extends State<StatsPage> {
                     source['as_of_date'] as String?,
                   ),
                 ),
-                const SizedBox(height: 18),
-                Text(_pitching ? '규정이닝 충족' : '규정타석 충족',
-                    style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 10),
                 if (qualified.isEmpty)
                   const Card(
@@ -421,6 +416,7 @@ class _PlayerFilters extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: selectedTeam,
             decoration: const InputDecoration(
                 labelText: '구단별 보기', prefixIcon: Icon(Icons.shield_rounded)),
@@ -433,6 +429,7 @@ class _PlayerFilters extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: sortKey,
             decoration: const InputDecoration(
               labelText: '정렬 기준',
@@ -541,65 +538,56 @@ class _PlayerDetailHero extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: Colors.white.withValues(alpha: .24)),
       ),
-      child: Stack(children: [
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _StadiumBoardPainter(accent: brand.secondary),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _BoardLight(color: brand.secondary),
+          const SizedBox(width: 7),
+          Text(
+            pitching ? 'BULLPEN PROFILE' : 'LINEUP PROFILE',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
           ),
-        ),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            _BoardLight(color: brand.secondary),
-            const SizedBox(width: 7),
-            Text(
-              pitching ? 'BULLPEN PROFILE' : 'LINEUP PROFILE',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1,
-              ),
+          const Spacer(),
+          const Icon(Icons.stadium_rounded, color: Colors.white70, size: 18),
+        ]),
+        const SizedBox(height: 18),
+        Row(children: [
+          Container(
+            width: 82,
+            height: 82,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .92),
+              borderRadius: BorderRadius.circular(22),
             ),
-            const Spacer(),
-            const Icon(Icons.stadium_rounded, color: Colors.white70, size: 18),
-          ]),
-          const SizedBox(height: 18),
-          Row(children: [
-            Container(
-              width: 82,
-              height: 82,
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .92),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: TeamPlayerAvatar(
-                teamName: player['team_name'] as String,
-                size: 70,
-              ),
+            child: TeamPlayerAvatar(
+              teamName: player['team_name'] as String,
+              size: 70,
             ),
-            const SizedBox(width: 17),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(player['team_name'] as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text(player['player_name'] as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 29,
-                            fontWeight: FontWeight.w900)),
-                  ]),
-            ),
-          ]),
+          ),
+          const SizedBox(width: 17),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(player['team_name'] as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Colors.white70, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(player['player_name'] as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 29,
+                      fontWeight: FontWeight.w900)),
+            ]),
+          ),
         ]),
       ]),
     );
@@ -646,9 +634,13 @@ class _PlayerCard extends StatelessWidget {
     final value = display.$2;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.ink, brand.primary.withValues(alpha: .88)],
+        ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: Colors.white.withValues(alpha: .18)),
         boxShadow: [
           BoxShadow(
             color: AppColors.ink.withValues(alpha: .045),
@@ -660,81 +652,74 @@ class _PlayerCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
-        child: Stack(children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _LineupCardPainter(accent: brand.primary),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Row(children: [
+            Container(
+              width: 62,
+              height: 62,
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(19),
+                border: Border.all(color: brand.primary.withValues(alpha: .18)),
+              ),
+              child: TeamPlayerAvatar(
+                teamName: player['team_name'] as String,
+                size: 52,
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-            child: Row(children: [
-              Container(
-                width: 62,
-                height: 62,
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: brand.primary.withValues(alpha: .1),
-                  borderRadius: BorderRadius.circular(19),
-                  border:
-                      Border.all(color: brand.primary.withValues(alpha: .18)),
-                ),
-                child: TeamPlayerAvatar(
-                  teamName: player['team_name'] as String,
-                  size: 52,
-                ),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(player['player_name'] as String,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 5),
-                      _PlayerMetaPill(text: player['team_name'] as String),
-                    ]),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 86,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                decoration: BoxDecoration(
-                  color: AppColors.ink,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: brand.primary.withValues(alpha: .55),
-                    width: 1.3,
-                  ),
-                ),
-                child: Column(children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('$value',
-                        style: TextStyle(
-                            color: brand.secondary,
-                            fontSize: 22,
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(player['player_name'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
                             fontWeight: FontWeight.w900)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800)),
-                ]),
+                    const SizedBox(height: 5),
+                    _PlayerMetaPill(text: player['team_name'] as String),
+                  ]),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 86,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              decoration: BoxDecoration(
+                color: AppColors.ink,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: brand.primary.withValues(alpha: .55),
+                  width: 1.3,
+                ),
               ),
-              const SizedBox(width: 6),
-              Icon(Icons.chevron_right_rounded, color: brand.primary),
-            ]),
-          ),
-        ]),
+              child: Column(children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('$value',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(height: 2),
+                Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800)),
+              ]),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+          ]),
+        ),
       ),
     );
   }
@@ -750,7 +735,7 @@ class _PlayerMetaPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.cream,
+        color: Colors.white.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(
@@ -758,7 +743,7 @@ class _PlayerMetaPill extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
-          color: AppColors.muted,
+          color: Colors.white70,
           fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
@@ -796,7 +781,7 @@ class _TopRecordStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (players.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 168,
+      height: 178,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _specs.length,
@@ -839,78 +824,71 @@ class _TopRecordStrip extends StatelessWidget {
             child: InkWell(
               onTap: () => onPlayerTap(player),
               borderRadius: BorderRadius.circular(23),
-              child: Stack(children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _StadiumBoardPainter(accent: brand.secondary),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(13),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        _BoardLight(color: brand.secondary),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            spec.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ]),
-                      const Spacer(),
-                      Row(children: [
-                        TeamPlayerAvatar(
-                          teamName: player['team_name'] as String,
-                          size: 44,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            player['player_name'] as String,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ]),
-                      const SizedBox(height: 9),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 11, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: .22),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '$value${spec.suffix}',
-                            style: TextStyle(
-                              color: brand.secondary,
-                              fontSize: 25,
-                              fontWeight: FontWeight.w900,
-                            ),
+              child: Padding(
+                padding: const EdgeInsets.all(13),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      _BoardLight(color: brand.secondary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          spec.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ]),
+                    const Spacer(),
+                    Row(children: [
+                      TeamPlayerAvatar(
+                        teamName: player['team_name'] as String,
+                        size: 44,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          player['player_name'] as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 9),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 11, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .22),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '$value${spec.suffix}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ]),
+              ),
             ),
           );
         },
@@ -957,91 +935,12 @@ class _BoardLight extends StatelessWidget {
   }
 }
 
-class _StadiumBoardPainter extends CustomPainter {
-  const _StadiumBoardPainter({required this.accent});
-
-  final Color accent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final line = Paint()
-      ..color = Colors.white.withValues(alpha: .08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    final glow = Paint()
-      ..color = accent.withValues(alpha: .12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2;
-    canvas.drawArc(
-      Rect.fromCircle(
-        center: Offset(size.width * .84, size.height * .06),
-        radius: size.width * .32,
-      ),
-      .25,
-      2.25,
-      false,
-      glow,
-    );
-    final base = Path()
-      ..moveTo(size.width * .5, size.height * .44)
-      ..lineTo(size.width * .64, size.height * .62)
-      ..lineTo(size.width * .5, size.height * .8)
-      ..lineTo(size.width * .36, size.height * .62)
-      ..close();
-    canvas.drawPath(base, line);
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .8),
-      Offset(size.width * .18, size.height),
-      line,
-    );
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .8),
-      Offset(size.width * .82, size.height),
-      line,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _StadiumBoardPainter oldDelegate) =>
-      oldDelegate.accent != accent;
-}
-
-class _LineupCardPainter extends CustomPainter {
-  const _LineupCardPainter({required this.accent});
-
-  final Color accent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = accent.withValues(alpha: .07)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final path = Path()
-      ..moveTo(size.width * .78, 0)
-      ..lineTo(size.width * .95, size.height * .52)
-      ..lineTo(size.width * .78, size.height)
-      ..moveTo(size.width * .04, size.height * .5)
-      ..lineTo(size.width * .2, size.height * .36)
-      ..lineTo(size.width * .36, size.height * .5)
-      ..lineTo(size.width * .2, size.height * .64)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _LineupCardPainter oldDelegate) =>
-      oldDelegate.accent != accent;
-}
-
 class _StatsHeader extends StatelessWidget {
   const _StatsHeader({
     required this.season,
-    required this.playerCount,
     required this.pitching,
   });
   final int season;
-  final int playerCount;
   final bool pitching;
 
   @override
@@ -1064,37 +963,33 @@ class _StatsHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(children: [
-        const Positioned.fill(
-          child: CustomPaint(
-            painter: _StadiumBoardPainter(accent: AppColors.butter),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const _BoardLight(color: AppColors.coral),
+          const SizedBox(width: 6),
+          const _BoardLight(color: AppColors.butter),
+          const SizedBox(width: 6),
+          const _BoardLight(color: AppColors.leaf),
+          const Spacer(),
+          Text(
+            pitching ? 'PITCHER BOARD' : 'BATTER BOARD',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
+            ),
           ),
-        ),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            const _BoardLight(color: AppColors.coral),
-            const SizedBox(width: 6),
-            const _BoardLight(color: AppColors.butter),
-            const SizedBox(width: 6),
-            const _BoardLight(color: AppColors.leaf),
-            const Spacer(),
-            Text(
-              pitching ? 'PITCHER BOARD' : 'BATTER BOARD',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.1,
-              ),
-            ),
-          ]),
-          const SizedBox(height: 34),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .9),
-              borderRadius: BorderRadius.circular(18),
-            ),
+        ]),
+        const SizedBox(height: 34),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .9),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(
                 pitching ? Icons.speed_rounded : Icons.sports_baseball_rounded,
@@ -1111,22 +1006,13 @@ class _StatsHeader extends StatelessWidget {
               ),
             ]),
           ),
-          const SizedBox(height: 14),
-          Text('$season ${pitching ? '투수' : '타자'} 시즌 지표',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 27,
-                  fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          Row(children: [
-            Icon(Icons.stadium_rounded,
-                color: AppColors.butter.withValues(alpha: .9), size: 18),
-            const SizedBox(width: 7),
-            Text('$playerCount명 라인업 기록판',
-                style: const TextStyle(
-                    color: Colors.white70, fontWeight: FontWeight.w800)),
-          ]),
-        ]),
+        ),
+        const SizedBox(height: 14),
+        Text('$season ${pitching ? '투수' : '타자'} 시즌 지표',
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 27,
+                fontWeight: FontWeight.w900)),
       ]),
     );
   }
@@ -1357,29 +1243,6 @@ class _RecentFiveGamePanel extends StatelessWidget {
         border: Border.all(color: AppColors.line),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: .12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.timeline_rounded, color: accent, size: 18),
-          ),
-          const SizedBox(width: 10),
-          const Text(
-            '최근 5경기',
-            style: TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const Spacer(),
-          Icon(Icons.stadium_rounded, color: accent, size: 18),
-        ]),
-        const SizedBox(height: 12),
         if (pitching) ...[
           SizedBox(
             height: 126,

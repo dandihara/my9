@@ -45,7 +45,9 @@ async def run(season_year: int) -> None:
                 schedule_total += len(games)
         game_ids = _completed_game_ids(season_year)
         for index, game_id in enumerate(game_ids, start=1):
-            sync_boxscore(await source.fetch_boxscore(game_id))
+            boxscore = await source.fetch_boxscore(game_id)
+            game_events = await source.fetch_game_events(game_id)
+            sync_boxscore(boxscore, game_events=game_events, finalize=True)
             print(f"[history] {index}/{len(game_ids)} game={game_id}")
         batting, pitching, wpa = refresh_season_metrics(season_year, force=True)
         print(

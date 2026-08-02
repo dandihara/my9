@@ -208,16 +208,29 @@ class TeamMascotIcon extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) => SizedBox.square(
-        dimension: responsiveIconSize(context, size),
-        child: Image.asset(
-          teamMascotAssetPath(teamName),
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.medium,
-          errorBuilder: (_, __, ___) =>
-              TeamBadge(teamName: teamName, size: size),
+  Widget build(BuildContext context) {
+    final effectiveSize = responsiveIconSize(context, size);
+    final upper = teamName.toUpperCase();
+    final cropWhiteFrame = upper.contains('NC') ||
+        upper.contains('키움') ||
+        upper.contains('KIWOOM');
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(effectiveSize * .2),
+      child: SizedBox.square(
+        dimension: effectiveSize,
+        child: Transform.scale(
+          scale: cropWhiteFrame ? 1.16 : 1,
+          child: Image.asset(
+            teamMascotAssetPath(teamName),
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (_, __, ___) =>
+                TeamBadge(teamName: teamName, size: size),
+          ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class TeamSectionIcon extends StatelessWidget {
@@ -463,14 +476,31 @@ class TeamPlayerAvatar extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-        size: Size.square(responsiveIconSize(context, size)),
-        painter: _PlayerAvatarPainter(TeamBrand.resolve(teamName)),
-      );
+  Widget build(BuildContext context) {
+    final effectiveSize = responsiveIconSize(context, size);
+    final brand = TeamBrand.resolve(teamName);
+    return SizedBox.square(
+      dimension: effectiveSize,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: effectiveSize * .12),
+            child: Image.asset(
+              'assets/player_ball_face.png',
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+            ),
+          ),
+          CustomPaint(painter: _PlayerCapPainter(brand)),
+        ],
+      ),
+    );
+  }
 }
 
-class _PlayerAvatarPainter extends CustomPainter {
-  const _PlayerAvatarPainter(this.brand);
+class _PlayerCapPainter extends CustomPainter {
+  const _PlayerCapPainter(this.brand);
 
   final TeamBrand brand;
 
@@ -478,88 +508,40 @@ class _PlayerAvatarPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final scale = size.width / 100;
     canvas.scale(scale);
-    final outline = Paint()..color = Colors.white.withValues(alpha: .95);
-    final skin = Paint()..color = const Color(0xFFFFD5B6);
-    final hair = Paint()..color = const Color(0xFF2C2522);
-    final jersey = Paint()..color = brand.primary;
-    final accent = Paint()..color = brand.secondary;
-    canvas.drawCircle(const Offset(50, 50), 49, outline);
-    canvas.drawCircle(
-        const Offset(50, 50),
-        45,
-        Paint()
-          ..color = brand.secondary.withValues(alpha: .1)
-          ..style = PaintingStyle.fill);
-    canvas.drawCircle(
-        const Offset(50, 50),
-        45,
-        Paint()
-          ..color = brand.primary.withValues(alpha: .18)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2);
     canvas.drawPath(
-        Path()
-          ..moveTo(9, 100)
-          ..quadraticBezierTo(14, 76, 34, 68)
-          ..quadraticBezierTo(50, 76, 66, 68)
-          ..quadraticBezierTo(86, 76, 91, 100)
-          ..close(),
-        jersey);
-    canvas.drawLine(
-        const Offset(50, 76),
-        const Offset(50, 100),
-        Paint()
-          ..color = Colors.white.withValues(alpha: .55)
-          ..strokeWidth = 1.4);
+      Path()
+        ..moveTo(17, 39)
+        ..quadraticBezierTo(25, 3, 53, 2)
+        ..quadraticBezierTo(78, 3, 86, 36)
+        ..quadraticBezierTo(55, 25, 17, 39)
+        ..close(),
+      Paint()..color = brand.primary,
+    );
     canvas.drawPath(
-        Path()
-          ..moveTo(42, 70)
-          ..lineTo(50, 82)
-          ..lineTo(58, 70)
-          ..close(),
-        accent);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            const Rect.fromLTWH(43, 57, 14, 18), const Radius.circular(6)),
-        skin);
-    canvas.drawOval(const Rect.fromLTWH(21, 38, 9, 14), skin);
-    canvas.drawOval(const Rect.fromLTWH(70, 38, 9, 14), skin);
-    canvas.drawOval(const Rect.fromLTWH(26, 19, 48, 52), skin);
-    canvas.drawArc(const Rect.fromLTWH(25, 13, 50, 31), 3.12, 3.12, true, hair);
-    canvas.drawPath(
-        Path()
-          ..moveTo(21, 31)
-          ..quadraticBezierTo(50, 3, 79, 31)
-          ..lineTo(70, 20)
-          ..quadraticBezierTo(50, 9, 30, 20)
-          ..close(),
-        jersey);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            const Rect.fromLTWH(21, 29, 58, 9), const Radius.circular(6)),
-        accent);
-    canvas.drawOval(const Rect.fromLTWH(34, 25, 32, 9),
-        Paint()..color = brand.primary.withValues(alpha: .82));
-    canvas.drawCircle(const Offset(41, 45), 2.1, hair);
-    canvas.drawCircle(const Offset(59, 45), 2.1, hair);
-    canvas.drawCircle(
-        const Offset(40.3, 44.3), .7, Paint()..color = Colors.white);
-    canvas.drawCircle(
-        const Offset(58.3, 44.3), .7, Paint()..color = Colors.white);
-    canvas.drawOval(const Rect.fromLTWH(47, 48, 6, 4),
-        Paint()..color = const Color(0xFFE7A989));
-    canvas.drawArc(
-        const Rect.fromLTWH(43, 48, 14, 10),
-        .2,
-        2.7,
-        false,
-        Paint()
-          ..color = hair.color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.8);
+      Path()
+        ..moveTo(18, 37)
+        ..quadraticBezierTo(55, 25, 91, 39)
+        ..quadraticBezierTo(72, 47, 47, 39)
+        ..quadraticBezierTo(29, 35, 18, 37)
+        ..close(),
+      Paint()..color = brand.secondary,
+    );
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: brand.initials,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          fontFamily: 'Jua',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    textPainter.paint(canvas, Offset(53 - textPainter.width / 2, 10));
   }
 
   @override
-  bool shouldRepaint(covariant _PlayerAvatarPainter oldDelegate) =>
+  bool shouldRepaint(covariant _PlayerCapPainter oldDelegate) =>
       oldDelegate.brand != brand;
 }

@@ -1,11 +1,21 @@
 from datetime import datetime
-from math import ceil
+from math import floor
 from zoneinfo import ZoneInfo
 
 from worker.db import get_conn
 
 
 KST = ZoneInfo("Asia/Seoul")
+
+
+def qualification_plate_appearances(team_games: int) -> int:
+    """Official rule: 3.1 PA per team game, rounded to the nearest PA."""
+    return floor(max(team_games, 0) * 3.1 + 0.5)
+
+
+def qualification_innings(team_games: int) -> int:
+    """KBO/official rule: one inning pitched per team game."""
+    return max(team_games, 0)
 
 
 def _outs(value) -> int:
@@ -44,7 +54,7 @@ def refresh_season_metrics(season_year: int, *, force: bool = False) -> tuple[in
             SELECT s.player_id, s.team_id, COUNT(DISTINCT s.game_id),
                    SUM(s.ab), SUM(s.r), SUM(s.h), SUM(s.doubles), SUM(s.triples),
                    SUM(s.hr), SUM(s.rbi), SUM(s.bb), SUM(s.hbp), SUM(s.sf),
-                   SUM(s.so), SUM(s.sb)
+                   SUM(s.sh), SUM(s.ci), SUM(s.so), SUM(s.sb)
             FROM batting_game_stats s
             JOIN games g ON g.id = s.game_id
             WHERE g.season_year = %s
@@ -56,8 +66,10 @@ def refresh_season_metrics(season_year: int, *, force: bool = False) -> tuple[in
         league_pa = league_weighted = league_runs = 0.0
         for row in batting_rows:
             values = [int(value or 0) for value in row[2:]]
-            games, ab, runs, hits, doubles, triples, hr, rbi, bb, hbp, sf, so, sb = values
-            pa = ab + bb + hbp + sf
+            games, ab, runs, hits, doubles, triples, hr, rbi, bb, hbp, sf, sh, ci, so, sb = values
+            # Official PA includes AB, BB, HBP, sacrifice flies/bunts and
+            # reaching on catcher interference.
+            pa = ab + bb + hbp + sf + sh + ci
             singles = max(hits - doubles - triples - hr, 0)
             weighted = (
                 0.69 * bb
@@ -74,7 +86,8 @@ def refresh_season_metrics(season_year: int, *, force: bool = False) -> tuple[in
                     "player_id": row[0], "team_id": row[1], "games": games,
                     "pa": pa, "ab": ab, "r": runs, "h": hits,
                     "doubles": doubles, "triples": triples, "hr": hr,
-                    "rbi": rbi, "bb": bb, "hbp": hbp, "sf": sf, "so": so,
+                    "rbi": rbi, "bb": bb, "hbp": hbp, "sf": sf, "sh": sh,
+                    "ci": ci, "so": so,
                     "sb": sb,
                     "avg": hits / ab if ab else 0,
                     "obp": (hits + bb + hbp) / obp_denominator if obp_denominator else 0,
@@ -100,24 +113,26 @@ def refresh_season_metrics(season_year: int, *, force: bool = False) -> tuple[in
                 max(runs_per_pa / league_runs_per_pa * 100, 0)
                 if league_runs_per_pa else 0
             )
-            qualification = ceil(team_games.get(item["team_id"], 0) * 3.1)
+            qualification = qualification_plate_appearances(
+                team_games.get(item["team_id"], 0)
+            )
             conn.execute(
                 """
                 INSERT INTO player_season_batting_metrics (
                     season_year, player_id, team_id, games, pa, ab, r, h, doubles,
-                    triples, hr, rbi, bb, hbp, sf, so, sb, avg, obp, slg, ops,
+                    triples, hr, rbi, bb, hbp, sf, sh, ci, so, sb, avg, obp, slg, ops,
                     estimated_woba, estimated_wrc, estimated_wrc_plus,
                     qualification_pa, is_qualified
                 ) VALUES (
                     %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,%s
+                    %s,%s,%s,%s,%s,%s,%s,%s
                 )
                 """,
                 (
                     season_year, item["player_id"], item["team_id"], item["games"],
                     item["pa"], item["ab"], item["r"], item["h"], item["doubles"],
                     item["triples"], item["hr"], item["rbi"], item["bb"], item["hbp"],
-                    item["sf"], item["so"], item["sb"], round(item["avg"], 3),
+                    item["sf"], item["sh"], item["ci"], item["so"], item["sb"], round(item["avg"], 3),
                     round(item["obp"], 3), round(item["slg"], 3),
                     round(item["obp"] + item["slg"], 3), round(woba, 3),
                     round(wrc, 1), round(wrc_plus, 1), qualification,
@@ -173,7 +188,7 @@ def refresh_season_metrics(season_year: int, *, force: bool = False) -> tuple[in
         )
         for (player_id, team_id), item in pitching.items():
             innings = item["outs"] / 3 if item["outs"] else 0
-            qualification = team_games.get(team_id, 0)
+            qualification = qualification_innings(team_games.get(team_id, 0))
             fip = (
                 (13 * item["home_runs"] + 3 * item["walks"] - 2 * item["strikeouts"])
                 / innings + fip_constant

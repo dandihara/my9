@@ -22,6 +22,7 @@ from app.schemas.attendance import (
     AttendanceUpdate,
     AttendanceBattingLeader,
 )
+from app.services.decisive_hit import find_decisive_event
 
 
 router = APIRouter()
@@ -184,36 +185,25 @@ async def attendance_summary(
             )
             winner_sign = 1 if winning_team_id == game.home_team_id else -1
             events = events_by_game.get(game_id, [])
-            found = False
-            for index, (event, player_name, team_name) in enumerate(events):
-                if (
-                    event.batting_team_id != winning_team_id
-                    or event.batter_id is None
-                    or not event.runs_scored
-                    or event.score_diff_before is None
-                    or event.score_diff_after is None
-                    or winner_sign * event.score_diff_before > 0
-                    or winner_sign * event.score_diff_after <= 0
-                ):
-                    continue
-                if not all(
-                    later.score_diff_after is not None
-                    and winner_sign * later.score_diff_after > 0
-                    for later, _, _ in events[index:]
-                ):
-                    continue
+            decisive_event = find_decisive_event(
+                [event for event, _, _ in events],
+                winning_team_id=winning_team_id,
+                winner_sign=winner_sign,
+            )
+            if decisive_event is not None:
+                _, player_name, team_name = next(
+                    row for row in events if row[0] is decisive_event
+                )
                 decisive_hits.append(
                     {
                         "game_id": game_id,
                         "game_date": game.game_date,
-                        "player_id": event.batter_id,
+                        "player_id": decisive_event.batter_id,
                         "player_name": player_name,
                         "team_name": team_name,
                     }
                 )
-                found = True
-                break
-            if not found:
+            else:
                 decisive_hits.append(
                     {
                         "game_id": game_id,

@@ -421,6 +421,10 @@ def sync_boxscore(
                 team_ids=team_ids,
                 events=game_events,
             )
+            conn.execute(
+                "UPDATE games SET events_synced_at = now() WHERE id = %s",
+                (game_id,),
+            )
 
         for item in boxscore["batting"]:
             player_id = _ensure_player(conn, item)
@@ -429,8 +433,8 @@ def sync_boxscore(
                 INSERT INTO batting_game_stats (
                     game_id, player_id, team_id, batting_order, position,
                     ab, r, h, doubles, triples, hr, rbi, bb, hbp, sf, so,
-                    sb, avg_after_game
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    sb, sh, ci, avg_after_game
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     game_id,
@@ -450,6 +454,8 @@ def sync_boxscore(
                     item["sf"],
                     item["so"],
                     item["sb"],
+                    item.get("sh", 0),
+                    item.get("ci", 0),
                     item["avg_after_game"],
                 ),
             )
@@ -499,6 +505,45 @@ async def _fetch_game_events_or_none(
     except Exception:
         logger.exception("game event sync failed game_id=%s", external_game_id)
         return None
+
+
+def _completed_games_missing_events(season_year: int) -> list[str]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT g.external_game_id
+            FROM games g
+            WHERE g.external_source = 'kbo'
+              AND g.season_year = %s
+              AND g.status = 'completed'
+              AND g.external_game_id IS NOT NULL
+              AND g.events_synced_at IS NULL
+            ORDER BY g.game_date, g.game_time, g.external_game_id
+            """,
+            (season_year,),
+        ).fetchall()
+    return [row[0] for row in rows]
+
+
+async def sync_missing_game_events(
+    source: BaseballDataSource, season_year: int
+) -> tuple[int, int, int]:
+    """Backfill the official KBO decisive-hit summary for completed games."""
+    game_ids = _completed_games_missing_events(season_year)
+    synced = event_total = failures = 0
+    for game_id in game_ids:
+        try:
+            boxscore = await source.fetch_boxscore(game_id)
+            game_events = await source.fetch_game_events(game_id)
+            sync_boxscore(boxscore, game_events=game_events, finalize=True)
+            synced += 1
+            event_total += len(game_events)
+        except Exception:
+            failures += 1
+            logger.exception("game event backfill failed game_id=%s", game_id)
+    if synced:
+        refresh_season_metrics(season_year)
+    return synced, event_total, failures
 
 
 def _completed_game_ids(target_date) -> list[str]:

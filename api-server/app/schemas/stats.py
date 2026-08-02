@@ -47,6 +47,8 @@ class SeasonBattingPlayerRead(BaseModel):
     bb: int
     hbp: int
     sf: int
+    sh: int
+    ci: int
     so: int
     sb: int
     avg: float

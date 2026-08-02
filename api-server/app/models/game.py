@@ -25,6 +25,9 @@ class Game(Base, TimestampMixin):
     boxscore_finalized_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    events_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class GameLiveState(Base, TimestampMixin):

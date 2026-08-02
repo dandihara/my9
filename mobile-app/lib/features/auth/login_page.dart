@@ -329,13 +329,18 @@ class _GateBadge extends StatelessWidget {
             Icon(Icons.sports_baseball_rounded,
                 color: AppColors.butter, size: 17),
             SizedBox(width: 7),
-            Text(
-              'PLAY BALL · MY9',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: .8,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'PLAY BALL · MY9',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .8,
+                  ),
+                ),
               ),
             ),
           ],

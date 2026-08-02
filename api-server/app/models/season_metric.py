@@ -24,6 +24,8 @@ class PlayerSeasonBattingMetric(Base, TimestampMixin):
     bb: Mapped[int] = mapped_column(Integer, default=0)
     hbp: Mapped[int] = mapped_column(Integer, default=0)
     sf: Mapped[int] = mapped_column(Integer, default=0)
+    sh: Mapped[int] = mapped_column(Integer, default=0)
+    ci: Mapped[int] = mapped_column(Integer, default=0)
     so: Mapped[int] = mapped_column(Integer, default=0)
     sb: Mapped[int] = mapped_column(Integer, default=0)
     avg: Mapped[float] = mapped_column(Numeric(6, 3), default=0)

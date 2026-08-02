@@ -12,6 +12,7 @@ from app.models.stat import BattingGameStat, PitchingGameStat
 from app.models.team import Team
 from app.models.wpa import GameEvent
 from app.schemas.game import GameRead, GameStatsRead, LiveGameRead
+from app.services.decisive_hit import find_decisive_event
 
 
 router = APIRouter()
@@ -109,30 +110,19 @@ async def get_game_stats(game_id: int, db: AsyncSession = Depends(get_db)) -> Ga
             .where(GameEvent.game_id == game_id)
             .order_by(GameEvent.sequence_no)
         )).scalars().all()
-        for index, event in enumerate(event_rows):
+        event = find_decisive_event(
+            event_rows,
+            winning_team_id=winning_team_id,
+            winner_sign=winner_sign,
+        )
+        if event is not None:
+            decisive_player_id = event.batter_id
             if (
-                event.batting_team_id != winning_team_id
-                or event.batter_id is None
-                or not event.runs_scored
-                or event.score_diff_before is None
-                or event.score_diff_after is None
-                or winner_sign * event.score_diff_before > 0
-                or winner_sign * event.score_diff_after <= 0
+                winning_team_id == game.home_team_id
+                and event.inning_half.lower() in {"bottom", "말"}
+                and event.event_type == "home_run"
             ):
-                continue
-            if all(
-                later.score_diff_after is not None
-                and winner_sign * later.score_diff_after > 0
-                for later in event_rows[index:]
-            ):
-                decisive_player_id = event.batter_id
-                if (
-                    winning_team_id == game.home_team_id
-                    and event.inning_half.lower() in {"bottom", "말"}
-                    and event.event_type == "home_run"
-                ):
-                    walkoff_home_run_player_id = event.batter_id
-                break
+                walkoff_home_run_player_id = event.batter_id
     pitching_rows = (
         await db.execute(
             select(PitchingGameStat, Player.name, Team.name)

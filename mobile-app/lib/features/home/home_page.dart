@@ -805,24 +805,6 @@ class _DashboardStadiumPainter extends CustomPainter {
       );
     }
 
-    final lightPole = Paint()
-      ..color = Colors.white.withValues(alpha: .16)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width * .16, size.height * .08),
-      Offset(size.width * .16, size.height * .38),
-      lightPole,
-    );
-    for (var i = 0; i < 4; i++) {
-      canvas.drawCircle(
-        Offset(size.width * (.115 + i * .03), size.height * .08),
-        3.2,
-        Paint()..color = Colors.white.withValues(alpha: .52),
-      );
-    }
-
     final stitch = Paint()
       ..color = Colors.white.withValues(alpha: .16)
       ..style = PaintingStyle.stroke

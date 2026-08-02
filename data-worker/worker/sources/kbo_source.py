@@ -1,10 +1,12 @@
 import asyncio
+import json
 import re
 import time as time_module
 from datetime import date, time
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.request import Request, urlopen
 
 from bs4 import BeautifulSoup, Tag
 from selenium import webdriver
@@ -287,6 +289,8 @@ def _parse_hitters(soup: BeautifulSoup, side: str, team_code: str) -> list[dict[
                 "bb": sum("4구" in outcome or "고4" in outcome for outcome in outcomes),
                 "hbp": sum("사구" in outcome for outcome in outcomes),
                 "sf": sum("희비" in outcome for outcome in outcomes),
+                "sh": sum("희번" in outcome for outcome in outcomes),
+                "ci": sum("타격방해" in outcome for outcome in outcomes),
                 "so": sum("삼진" in outcome for outcome in outcomes),
                 "sb": sum(
                     "도루" in outcome and "실패" not in outcome
@@ -435,6 +439,84 @@ def parse_game_events_html(html: str) -> list[dict[str, Any]]:
     return events
 
 
+def _grid_texts(table_json: str | None) -> list[list[str]]:
+    if not table_json:
+        return []
+    table = json.loads(table_json)
+    return [
+        [str(cell.get("Text") or "").strip() for cell in row.get("row", [])]
+        for row in table.get("rows", [])
+    ]
+
+
+def _base_state_from_description(description: str) -> str:
+    if "만루" in description:
+        return "111"
+    occupied = {int(base) for base in re.findall(r"([123])루", description)}
+    return "".join("1" if base in occupied else "0" for base in (1, 2, 3))
+
+
+def parse_game_events_payload(
+    payload: dict[str, Any], *, away_team_code: str, home_team_code: str
+) -> list[dict[str, Any]]:
+    """Normalize the official KBO review summary into a decisive-hit event.
+
+    Completed game pages populate their event summary through
+    GetBoxScoreScroll rather than rendering play-by-play markup in the HTML.
+    The first summary row is KBO's official winning-hit record and includes the
+    batter, inning, outs and base situation.
+    """
+    decisive_description: str | None = None
+    for cells in _grid_texts(payload.get("tableEtc")):
+        if len(cells) >= 2 and cells[0] == "결승타":
+            decisive_description = cells[1]
+            break
+    if not decisive_description or decisive_description in {"없음", "-"}:
+        return []
+
+    name_match = re.match(r"\s*(.+?)\s*\(", decisive_description)
+    inning_match = re.search(r"(\d+)회", decisive_description)
+    if not name_match or not inning_match:
+        return []
+    batter_name = name_match.group(1).strip()
+
+    batting_team_code: str | None = None
+    hitter_groups = payload.get("arrHitter") or []
+    for index, group in enumerate(hitter_groups[:2]):
+        for cells in _grid_texts(group.get("table1")):
+            if batter_name in cells:
+                batting_team_code = away_team_code if index == 0 else home_team_code
+                break
+        if batting_team_code:
+            break
+    if batting_team_code is None:
+        return []
+
+    is_home = batting_team_code == home_team_code
+    outs_match = re.search(r"([012])사", decisive_description)
+    outs_before = int(outs_match.group(1)) if outs_match else 0
+    return [
+        {
+            "sequence_no": 1,
+            "inning": int(inning_match.group(1)),
+            "inning_half": "bottom" if is_home else "top",
+            "outs_before": outs_before,
+            "base_state_before": _base_state_from_description(decisive_description),
+            "score_diff_before": 0,
+            "event_type": "decisive_hit",
+            "description": decisive_description,
+            "runs_scored": 1,
+            "outs_after": min(2, outs_before + (1 if "희생" in decisive_description else 0)),
+            "base_state_after": "000",
+            "score_diff_after": 1 if is_home else -1,
+            "batter_name": batter_name,
+            "pitcher_name": None,
+            "batting_team_code": batting_team_code,
+            "fielding_team_code": away_team_code if is_home else home_team_code,
+        }
+    ]
+
+
 def parse_boxscore_html(
     html: str, external_game_id: str, away_team_code: str, home_team_code: str
 ) -> dict[str, Any]:
@@ -550,25 +632,39 @@ class KboSource(BaseballDataSource):
         )
 
     def _fetch_game_events(self, external_game_id: str) -> list[dict[str, Any]]:
-        if self._driver is None:
-            self._driver = self._create_driver()
-        game_date, _, _ = _game_id_parts(external_game_id)
-        url = settings.kbo_event_url_template.format(
-            base_url=settings.kbo_base_url.rstrip("/"),
-            game_date=game_date,
-            game_id=external_game_id,
+        _, away_code, home_code = _game_id_parts(external_game_id)
+        body = urlencode(
+            {
+                "leId": "1",
+                "srId": "0",
+                "seasonId": external_game_id[:4],
+                "gameId": external_game_id,
+            }
+        ).encode("utf-8")
+        request = Request(
+            f"{settings.kbo_base_url.rstrip('/')}/ws/Schedule.asmx/GetBoxScoreScroll",
+            data=body,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Referer": settings.kbo_event_url_template.format(
+                    base_url=settings.kbo_base_url.rstrip("/"),
+                    game_date=external_game_id[:8],
+                    game_id=external_game_id,
+                ),
+                "X-Requested-With": "XMLHttpRequest",
+                "User-Agent": "Mozilla/5.0",
+            },
         )
-        self._driver.get(url)
-        wait = WebDriverWait(self._driver, settings.chrome_page_timeout_seconds)
-        wait.until(lambda driver: driver.find_elements(By.TAG_NAME, "body"))
-        time_module.sleep(settings.chrome_page_settle_seconds)
-        events = parse_game_events_html(self._driver.page_source)
-        if not events:
+        with urlopen(request, timeout=settings.chrome_page_timeout_seconds) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        if str(payload.get("code")) != "100":
             raise ValueError(
-                f"KBO event relay not found for game={external_game_id}; "
-                "page markup may require a different event endpoint"
+                f"KBO review summary failed for game={external_game_id}: "
+                f"{payload.get('msg') or payload.get('code')}"
             )
-        return events
+        return parse_game_events_payload(
+            payload, away_team_code=away_code, home_team_code=home_code
+        )
 
     async def aclose(self) -> None:
         if self._driver is not None and not self._keep_open:

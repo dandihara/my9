@@ -5,7 +5,11 @@ from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from worker.jobs.sync_boxscore import sync_completed_boxscores, sync_started_boxscores
+from worker.jobs.sync_boxscore import (
+    sync_completed_boxscores,
+    sync_missing_game_events,
+    sync_started_boxscores,
+)
 from worker.jobs.sync_live_games import sync_live_games
 from worker.jobs.sync_schedule import sync_schedule
 from worker.config import settings
@@ -133,6 +137,28 @@ class WorkerJobs:
                 )
             except Exception:
                 logger.exception("boxscore sync failed date=%s", target_date)
+            finally:
+                await self._close_browser()
+
+    async def sync_season_game_events(self) -> None:
+        """Fill missing KBO event summaries so decisive-hit data stays complete."""
+        async with self.lock:
+            season_year = datetime.now(KST).year
+            try:
+                synced, events, failures = await sync_missing_game_events(
+                    self.source, season_year
+                )
+                logger.info(
+                    "season game event sync complete season=%s games=%s events=%s failures=%s",
+                    season_year,
+                    synced,
+                    events,
+                    failures,
+                )
+            except Exception:
+                logger.exception(
+                    "season game event sync failed season=%s", season_year
+                )
             finally:
                 await self._close_browser()
 
@@ -333,6 +359,16 @@ async def main() -> None:
         misfire_grace_time=3600,
     )
     scheduler.add_job(
+        jobs.sync_season_game_events,
+        "cron",
+        hour=4,
+        minute=20,
+        id="sync_missing_season_game_events_daily",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    scheduler.add_job(
         jobs.sync_started_game_boxscores,
         "cron",
         minute="*/10",
@@ -353,6 +389,7 @@ async def main() -> None:
     scheduler.start()
     try:
         await jobs.backfill_recent_data()
+        await jobs.sync_season_game_events()
         await jobs.sync_upcoming_schedule()
         await jobs.sync_today_schedule()
         await jobs.sync_yesterday_boxscores()

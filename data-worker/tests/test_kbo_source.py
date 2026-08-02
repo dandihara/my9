@@ -1,3 +1,4 @@
+import json
 import unittest
 from datetime import date, time
 
@@ -6,6 +7,7 @@ from worker.sources.kbo_source import (
     _game_id_parts,
     parse_boxscore_html,
     parse_game_events_html,
+    parse_game_events_payload,
     parse_schedule_html,
 )
 from worker.jobs.sync_boxscore import _normalize_event_scores
@@ -140,6 +142,40 @@ class ParseGameEventsHtmlTest(unittest.TestCase):
         self.assertEqual(events[0]["inning_half"], "top")
         self.assertEqual(events[0]["event_type"], "hit")
         self.assertEqual(events[0]["base_state_after"], "100")
+
+    def test_parses_official_decisive_hit_summary(self) -> None:
+        def table(rows: list[list[str]]) -> str:
+            return json.dumps(
+                {
+                    "rows": [
+                        {"row": [{"Text": value} for value in row]}
+                        for row in rows
+                    ]
+                },
+                ensure_ascii=False,
+            )
+
+        payload = {
+            "tableEtc": table(
+                [["결승타", "오스틴(1회 1사 2루서 중전 안타)"]]
+            ),
+            "arrHitter": [
+                {"table1": table([["1", "좌", "최인호"]])},
+                {"table1": table([["3", "지", "오스틴"]])},
+            ],
+        }
+
+        events = parse_game_events_payload(
+            payload, away_team_code="HH", home_team_code="LG"
+        )
+
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["event_type"], "decisive_hit")
+        self.assertEqual(events[0]["batter_name"], "오스틴")
+        self.assertEqual(events[0]["inning"], 1)
+        self.assertEqual(events[0]["inning_half"], "bottom")
+        self.assertEqual(events[0]["base_state_before"], "010")
+        self.assertEqual(events[0]["score_diff_after"], 1)
 
 
 class NormalizeEventScoresTest(unittest.TestCase):

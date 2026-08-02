@@ -124,12 +124,18 @@ class _SignupPageState extends State<SignupPage> {
                                 Icon(Icons.local_activity_rounded,
                                     color: AppColors.coral),
                                 SizedBox(width: 9),
-                                Text(
-                                  'ROOKIE SEASON PASS',
-                                  style: TextStyle(
-                                    color: AppColors.ink,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: .5,
+                                Expanded(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'ROOKIE SEASON PASS',
+                                      style: TextStyle(
+                                        color: AppColors.ink,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: .5,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],

@@ -162,52 +162,52 @@ class _StadiumBackdropPainter extends CustomPainter {
     ).createShader(rect);
     canvas.drawRect(rect, Paint()..shader = gradient);
 
-    final center = Offset(size.width / 2, -size.width * .18);
-    final standPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 18;
-    for (var i = 0; i < 3; i++) {
-      standPaint.color = (i.isEven ? AppColors.sky : AppColors.lavender)
-          .withValues(alpha: .18 + pulse * .025);
-      canvas.drawArc(
-        Rect.fromCircle(
-          center: center,
-          radius: size.width * (.56 + i * .13),
-        ),
-        .18,
-        math.pi - .36,
-        false,
-        standPaint,
-      );
-    }
-
-    final fieldCenter = Offset(size.width / 2, size.height * .86);
-    final fieldSize = math.min(size.width * .56, 250.0);
-    final diamond = Path()
-      ..moveTo(fieldCenter.dx, fieldCenter.dy - fieldSize)
-      ..lineTo(fieldCenter.dx + fieldSize, fieldCenter.dy)
-      ..lineTo(fieldCenter.dx, fieldCenter.dy + fieldSize)
-      ..lineTo(fieldCenter.dx - fieldSize, fieldCenter.dy)
+    final fieldTop = size.height * .46;
+    final home = Offset(size.width / 2, size.height * .98);
+    final leftFoul = Offset(-size.width * .08, fieldTop);
+    final rightFoul = Offset(size.width * 1.08, fieldTop);
+    final outfield = Path()
+      ..moveTo(home.dx, home.dy)
+      ..lineTo(leftFoul.dx, leftFoul.dy)
+      ..quadraticBezierTo(
+          size.width / 2, size.height * .28, rightFoul.dx, rightFoul.dy)
       ..close();
     canvas.drawPath(
-      diamond,
-      Paint()..color = AppColors.field.withValues(alpha: .12),
-    );
-    canvas.drawPath(
-      diamond,
-      Paint()
-        ..color = AppColors.forest.withValues(alpha: .11)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+      outfield,
+      Paint()..color = AppColors.field.withValues(alpha: .11 + pulse * .012),
     );
 
+    final foulPaint = Paint()
+      ..color = AppColors.forest.withValues(alpha: .14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawLine(home, leftFoul, foulPaint);
+    canvas.drawLine(home, rightFoul, foulPaint);
+
+    final infieldCenter = Offset(size.width / 2, size.height * .73);
+    final infieldRadius = math.min(size.width * .31, 150.0);
+    canvas.drawCircle(
+      infieldCenter,
+      infieldRadius,
+      Paint()..color = const Color(0xFFD7B57A).withValues(alpha: .12),
+    );
+    final baseDistance = infieldRadius * .64;
+    final bases = [
+      Offset(infieldCenter.dx, infieldCenter.dy - baseDistance),
+      Offset(infieldCenter.dx + baseDistance, infieldCenter.dy),
+      home,
+      Offset(infieldCenter.dx - baseDistance, infieldCenter.dy),
+    ];
+    final basePath = Path()..moveTo(bases.first.dx, bases.first.dy);
+    for (final point in bases.skip(1)) {
+      basePath.lineTo(point.dx, point.dy);
+    }
+    basePath.close();
+    canvas.drawPath(basePath, foulPaint);
+
     final basePaint = Paint()
-      ..color = Colors.white.withValues(alpha: .68 + pulse * .08);
-    for (final point in [
-      Offset(fieldCenter.dx, fieldCenter.dy - fieldSize),
-      Offset(fieldCenter.dx + fieldSize, fieldCenter.dy),
-      Offset(fieldCenter.dx - fieldSize, fieldCenter.dy),
-    ]) {
+      ..color = Colors.white.withValues(alpha: .72 + pulse * .05);
+    for (final point in [bases[0], bases[1], bases[3]]) {
       canvas.save();
       canvas.translate(point.dx, point.dy);
       canvas.rotate(math.pi / 4);
@@ -220,6 +220,14 @@ class _StadiumBackdropPainter extends CustomPainter {
       );
       canvas.restore();
     }
+    final plate = Path()
+      ..moveTo(home.dx - 7, home.dy - 9)
+      ..lineTo(home.dx + 7, home.dy - 9)
+      ..lineTo(home.dx + 7, home.dy - 3)
+      ..lineTo(home.dx, home.dy + 3)
+      ..lineTo(home.dx - 7, home.dy - 3)
+      ..close();
+    canvas.drawPath(plate, basePaint);
   }
 
   @override
