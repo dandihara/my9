@@ -46,7 +46,17 @@ class WorkerJobs:
     async def sync_upcoming_schedule(self) -> None:
         async with self.lock:
             today = datetime.now(KST).date()
-            end_date = today + timedelta(days=settings.startup_future_schedule_days)
+            end_date = today.replace(
+                month=settings.schedule_end_month,
+                day=settings.schedule_end_day,
+            )
+            if today > end_date:
+                logger.info(
+                    "upcoming schedule sync skipped date=%s season_end=%s",
+                    today,
+                    end_date,
+                )
+                return
             current = today
             failures = 0
             while current <= end_date:

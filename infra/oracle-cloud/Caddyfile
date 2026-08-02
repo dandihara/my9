@@ -1,0 +1,4 @@
+{$MY9_DOMAIN} {
+    encode gzip
+    reverse_proxy api-server:8000
+}

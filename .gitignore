@@ -71,3 +71,6 @@ mobile-app/assets/team_icons/sections/*chroma*.png
 mobile-app/assets/team_icons/sections/*fixed*.png
 mobile-app/assets/team_icons/sections/*preview*.png
 mobile-app/assets/*chroma*.png
+
+# Local asset backups
+asset-backups/
