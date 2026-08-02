@@ -8,16 +8,19 @@ double responsiveIconSize(BuildContext context, double baseSize) {
 class TeamBrand {
   const TeamBrand({
     required this.shortName,
+    required this.initials,
     required this.primary,
     required this.secondary,
   });
 
   final String shortName;
+  final String initials;
   final Color primary;
   final Color secondary;
 
   static const fallback = TeamBrand(
     shortName: 'KBO',
+    initials: 'K',
     primary: Color(0xFF17223B),
     secondary: Color(0xFFA9D56B),
   );
@@ -25,42 +28,52 @@ class TeamBrand {
   static const _brands = <String, TeamBrand>{
     '두산': TeamBrand(
         shortName: '두산',
+        initials: 'D',
         primary: Color(0xFF131230),
         secondary: Color(0xFFED1C24)),
     'LG': TeamBrand(
         shortName: 'LG',
+        initials: 'LG',
         primary: Color(0xFFC30452),
         secondary: Color(0xFF333333)),
     '삼성': TeamBrand(
         shortName: '삼성',
+        initials: 'SL',
         primary: Color(0xFF074CA1),
         secondary: Color(0xFFC0C0C0)),
     '키움': TeamBrand(
         shortName: '키움',
+        initials: 'KH',
         primary: Color(0xFF820024),
         secondary: Color(0xFFD4A62A)),
     'SSG': TeamBrand(
         shortName: 'SSG',
+        initials: 'SS',
         primary: Color(0xFFCE0E2D),
         secondary: Color(0xFFFFD6C4)),
     'KT': TeamBrand(
         shortName: 'KT',
+        initials: 'KT',
         primary: Color(0xFF111111),
         secondary: Color(0xFFEC1C24)),
     '롯데': TeamBrand(
         shortName: '롯데',
+        initials: 'LT',
         primary: Color(0xFF041E42),
         secondary: Color(0xFFD00F31)),
     'KIA': TeamBrand(
         shortName: 'KIA',
+        initials: 'KI',
         primary: Color(0xFFEA0029),
         secondary: Color(0xFF06141F)),
     '한화': TeamBrand(
         shortName: '한화',
+        initials: 'HE',
         primary: Color(0xFFF37321),
         secondary: Color(0xFF1A1A1A)),
     'NC': TeamBrand(
         shortName: 'NC',
+        initials: 'NC',
         primary: Color(0xFF315288),
         secondary: Color(0xFFC8A977)),
   };
@@ -105,10 +118,10 @@ class TeamBadge extends StatelessWidget {
         ],
       ),
       child: Text(
-        brand.shortName.substring(0, brand.shortName.length.clamp(1, 2)),
+        brand.initials,
         style: TextStyle(
           color: Colors.white,
-          fontSize: effectiveSize * .25,
+          fontSize: effectiveSize * (brand.initials.length > 1 ? .23 : .33),
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -141,7 +154,7 @@ String teamMascotAssetPath(String teamName) {
   return 'assets/app_icon_neutral.png';
 }
 
-enum TeamIconSection { schedule, attendance, stats, wpa }
+enum TeamIconSection { schedule, attendance, stats, wpa, standings, league }
 
 String? _teamAssetKey(String teamName) {
   final upper = teamName.toUpperCase();
@@ -170,6 +183,8 @@ String teamSectionAssetPath(
       TeamIconSection.attendance => 'assets/mascot_attendance.png',
       TeamIconSection.stats => 'assets/mascot_stats.png',
       TeamIconSection.wpa => 'assets/mascot_live.png',
+      TeamIconSection.standings => 'assets/mascot_standings.png',
+      TeamIconSection.league => 'assets/mascot_league.png',
     };
   }
   if (key == null) {
@@ -178,6 +193,8 @@ String teamSectionAssetPath(
       TeamIconSection.attendance => 'assets/mascot_attendance.png',
       TeamIconSection.stats => 'assets/mascot_stats.png',
       TeamIconSection.wpa => 'assets/mascot_live.png',
+      TeamIconSection.standings => 'assets/mascot_standings.png',
+      TeamIconSection.league => 'assets/mascot_league.png',
     };
   }
   final assetKey = key == 'doosan' ? 'doosan_cheolwoong' : key;
@@ -201,6 +218,242 @@ class TeamMascotIcon extends StatelessWidget {
               TeamBadge(teamName: teamName, size: size),
         ),
       );
+}
+
+class TeamSectionIcon extends StatelessWidget {
+  const TeamSectionIcon({
+    required this.teamName,
+    required this.section,
+    this.size = 104,
+    super.key,
+  });
+
+  final String teamName;
+  final TeamIconSection section;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+        size: Size.square(responsiveIconSize(context, size)),
+        painter: _TeamMascotPainter(
+          brand: TeamBrand.resolve(teamName),
+          section: section,
+        ),
+      );
+}
+
+class _TeamMascotPainter extends CustomPainter {
+  const _TeamMascotPainter({
+    required this.brand,
+    required this.section,
+  });
+
+  final TeamBrand brand;
+  final TeamIconSection? section;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = size.width / 120;
+    canvas
+      ..save()
+      ..scale(scale);
+    final shadow = Paint()
+      ..color = Colors.black.withValues(alpha: .12)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawOval(const Rect.fromLTWH(20, 98, 82, 12), shadow);
+
+    final ball = Paint()..color = const Color(0xFFFFF7EA);
+    final outline = Paint()
+      ..color = brand.primary.withValues(alpha: .75)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(const Offset(60, 61), 43, ball);
+    canvas.drawCircle(const Offset(60, 61), 43, outline);
+
+    final stitch = Paint()
+      ..color = brand.secondary.withValues(alpha: .78)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+        const Rect.fromLTWH(21, 30, 25, 62), -1.1, 2.2, false, stitch);
+    canvas.drawArc(
+        const Rect.fromLTWH(74, 30, 25, 62), 2.05, 2.2, false, stitch);
+    for (var i = 0; i < 7; i++) {
+      final y = 38 + i * 7.2;
+      canvas.drawLine(Offset(34, y), Offset(42, y + 3), stitch);
+      canvas.drawLine(Offset(86, y), Offset(78, y + 3), stitch);
+    }
+
+    final cap = Paint()..color = brand.primary;
+    canvas.drawPath(
+      Path()
+        ..moveTo(31, 40)
+        ..quadraticBezierTo(60, 13, 89, 40)
+        ..lineTo(82, 47)
+        ..quadraticBezierTo(60, 35, 38, 47)
+        ..close(),
+      cap,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          const Rect.fromLTWH(34, 41, 52, 9), const Radius.circular(9)),
+      Paint()..color = brand.secondary.withValues(alpha: .9),
+    );
+    _drawCenteredText(canvas, brand.initials, const Offset(60, 35), 13,
+        Colors.white, FontWeight.w900);
+
+    final eye = Paint()..color = const Color(0xFF17223B);
+    canvas.drawCircle(const Offset(48, 61), 3.2, eye);
+    canvas.drawCircle(const Offset(72, 61), 3.2, eye);
+    canvas.drawArc(
+      const Rect.fromLTWH(52, 65, 16, 10),
+      .15,
+      2.85,
+      false,
+      Paint()
+        ..color = eye.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.2
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(const Offset(42, 69), 4.2,
+        Paint()..color = const Color(0xFFFF9E9B).withValues(alpha: .55));
+    canvas.drawCircle(const Offset(78, 69), 4.2,
+        Paint()..color = const Color(0xFFFF9E9B).withValues(alpha: .55));
+
+    _paintSectionProp(canvas);
+    canvas.restore();
+  }
+
+  void _paintSectionProp(Canvas canvas) {
+    if (section == null) return;
+    final propPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final line = Paint()
+      ..color = brand.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    switch (section!) {
+      case TeamIconSection.schedule:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(76, 60, 30, 28), const Radius.circular(7)),
+          propPaint,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(76, 60, 30, 28), const Radius.circular(7)),
+          line,
+        );
+        canvas.drawLine(const Offset(82, 70), const Offset(100, 70), line);
+        canvas.drawLine(const Offset(82, 78), const Offset(96, 78), line);
+        break;
+      case TeamIconSection.attendance:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(78, 59, 28, 32), const Radius.circular(5)),
+          propPaint,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(78, 59, 28, 32), const Radius.circular(5)),
+          line,
+        );
+        canvas.drawLine(const Offset(84, 74), const Offset(90, 80), line);
+        canvas.drawLine(const Offset(90, 80), const Offset(100, 66), line);
+        break;
+      case TeamIconSection.stats:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(75, 59, 33, 31), const Radius.circular(5)),
+          propPaint,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(75, 59, 33, 31), const Radius.circular(5)),
+          line,
+        );
+        for (final bar in const [
+          Rect.fromLTWH(82, 76, 4, 8),
+          Rect.fromLTWH(91, 69, 4, 15),
+          Rect.fromLTWH(100, 63, 4, 21),
+        ]) {
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(bar, const Radius.circular(2)),
+            Paint()..color = brand.secondary,
+          );
+        }
+        break;
+      case TeamIconSection.wpa:
+        canvas.drawLine(const Offset(82, 84), const Offset(100, 66), line);
+        canvas.drawCircle(const Offset(60, 60), 0, line);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(79, 61, 29, 25), const Radius.circular(6)),
+          propPaint..color = Colors.white.withValues(alpha: .9),
+        );
+        canvas.drawPath(
+          Path()
+            ..moveTo(84, 79)
+            ..lineTo(91, 72)
+            ..lineTo(96, 75)
+            ..lineTo(103, 66),
+          line,
+        );
+        break;
+      case TeamIconSection.standings:
+      case TeamIconSection.league:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(77, 61, 31, 28), const Radius.circular(6)),
+          propPaint,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              const Rect.fromLTWH(77, 61, 31, 28), const Radius.circular(6)),
+          line,
+        );
+        canvas.drawLine(const Offset(84, 83), const Offset(84, 71), line);
+        canvas.drawLine(const Offset(92, 83), const Offset(92, 66), line);
+        canvas.drawLine(const Offset(100, 83), const Offset(100, 75), line);
+        break;
+    }
+    canvas.drawCircle(
+        const Offset(31, 76), 8, Paint()..color = brand.secondary);
+    canvas.drawCircle(const Offset(89, 82), 8, Paint()..color = brand.primary);
+  }
+
+  void _drawCenteredText(
+    Canvas canvas,
+    String text,
+    Offset center,
+    double fontSize,
+    Color color,
+    FontWeight weight,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontWeight: weight,
+          fontFamily: 'Jua',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(
+        canvas, center - Offset(painter.width / 2, painter.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(covariant _TeamMascotPainter oldDelegate) =>
+      oldDelegate.brand != brand || oldDelegate.section != section;
 }
 
 class TeamPlayerAvatar extends StatelessWidget {
@@ -231,14 +484,33 @@ class _PlayerAvatarPainter extends CustomPainter {
     final jersey = Paint()..color = brand.primary;
     final accent = Paint()..color = brand.secondary;
     canvas.drawCircle(const Offset(50, 50), 49, outline);
+    canvas.drawCircle(
+        const Offset(50, 50),
+        45,
+        Paint()
+          ..color = brand.secondary.withValues(alpha: .1)
+          ..style = PaintingStyle.fill);
+    canvas.drawCircle(
+        const Offset(50, 50),
+        45,
+        Paint()
+          ..color = brand.primary.withValues(alpha: .18)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);
     canvas.drawPath(
         Path()
-          ..moveTo(12, 100)
-          ..quadraticBezierTo(16, 72, 39, 68)
-          ..lineTo(61, 68)
-          ..quadraticBezierTo(84, 72, 88, 100)
+          ..moveTo(9, 100)
+          ..quadraticBezierTo(14, 76, 34, 68)
+          ..quadraticBezierTo(50, 76, 66, 68)
+          ..quadraticBezierTo(86, 76, 91, 100)
           ..close(),
         jersey);
+    canvas.drawLine(
+        const Offset(50, 76),
+        const Offset(50, 100),
+        Paint()
+          ..color = Colors.white.withValues(alpha: .55)
+          ..strokeWidth = 1.4);
     canvas.drawPath(
         Path()
           ..moveTo(42, 70)
@@ -250,22 +522,32 @@ class _PlayerAvatarPainter extends CustomPainter {
         RRect.fromRectAndRadius(
             const Rect.fromLTWH(43, 57, 14, 18), const Radius.circular(6)),
         skin);
+    canvas.drawOval(const Rect.fromLTWH(21, 38, 9, 14), skin);
+    canvas.drawOval(const Rect.fromLTWH(70, 38, 9, 14), skin);
     canvas.drawOval(const Rect.fromLTWH(26, 19, 48, 52), skin);
     canvas.drawArc(const Rect.fromLTWH(25, 13, 50, 31), 3.12, 3.12, true, hair);
     canvas.drawPath(
         Path()
-          ..moveTo(24, 30)
-          ..quadraticBezierTo(50, 4, 76, 30)
-          ..lineTo(69, 19)
-          ..quadraticBezierTo(50, 8, 31, 19)
+          ..moveTo(21, 31)
+          ..quadraticBezierTo(50, 3, 79, 31)
+          ..lineTo(70, 20)
+          ..quadraticBezierTo(50, 9, 30, 20)
           ..close(),
         jersey);
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            const Rect.fromLTWH(24, 28, 54, 8), const Radius.circular(5)),
+            const Rect.fromLTWH(21, 29, 58, 9), const Radius.circular(6)),
         accent);
+    canvas.drawOval(const Rect.fromLTWH(34, 25, 32, 9),
+        Paint()..color = brand.primary.withValues(alpha: .82));
     canvas.drawCircle(const Offset(41, 45), 2.1, hair);
     canvas.drawCircle(const Offset(59, 45), 2.1, hair);
+    canvas.drawCircle(
+        const Offset(40.3, 44.3), .7, Paint()..color = Colors.white);
+    canvas.drawCircle(
+        const Offset(58.3, 44.3), .7, Paint()..color = Colors.white);
+    canvas.drawOval(const Rect.fromLTWH(47, 48, 6, 4),
+        Paint()..color = const Color(0xFFE7A989));
     canvas.drawArc(
         const Rect.fromLTWH(43, 48, 14, 10),
         .2,

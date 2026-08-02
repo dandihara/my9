@@ -87,10 +87,13 @@ class _StatsPageState extends State<StatsPage> {
     String? asOfDate,
   ) {
     final brand = TeamBrand.resolve(player['team_name'] as String);
+    final recentGames =
+        (player['recent_games'] as List<dynamic>? ?? const <dynamic>[])
+            .cast<Map<String, dynamic>>();
     final primary = _pitching
         ? <String, String>{
             'ERA': '${player['era']}',
-            '이닝': '${player['innings_pitched']}',
+            'WHIP': '${player['whip']}',
           }
         : <String, String>{
             'OPS': '${player['ops']}',
@@ -99,114 +102,41 @@ class _StatsPageState extends State<StatsPage> {
     final statGroups = _pitching
         ? <_StatGroup>[
             _StatGroup(
-              title: '기본 투구',
+              title: '',
               icon: Icons.sports_baseball_rounded,
               stats: {
                 '이닝': '${player['innings_pitched']}',
-                '피안타': '${player['hits']}',
-                '실점': '${player['runs']}',
                 '자책': '${player['earned_runs']}',
-                '볼넷': '${player['walks']}',
                 '삼진': '${player['strikeouts']}',
-              },
-            ),
-            _StatGroup(
-              title: '구위와 제구',
-              icon: Icons.speed_rounded,
-              stats: {
-                'K/9': '${player['k_per_nine']}',
-                'BB/9': '${player['bb_per_nine']}',
-                'K/BB': '${player['k_bb']}',
+                '피안타': '${player['hits']}',
+                '볼넷': '${player['walks']}',
                 '피홈런': '${player['home_runs']}',
                 '상대 타자': '${player['batters_faced']}',
-              },
-            ),
-            _StatGroup(
-              title: '고급 지표',
-              icon: Icons.auto_graph_rounded,
-              stats: {
+                'K/9': '${player['k_per_nine']}',
+                'K/BB': '${player['k_bb']}',
                 'FIP': '${player['fip']}',
-                'K-BB%': '${player['k_bb_percent']}%',
-                '투구 WPA': '${player['pitching_wpa']}',
-                '종합 WPA': '${player['total_wpa']}',
-              },
-            ),
-            _StatGroup(
-              title: '승리 억제 지표',
-              icon: Icons.lock_rounded,
-              stats: {
-                'ERA': '${player['era']}',
-                'WHIP': '${player['whip']}',
-                '피안타': '${player['hits']}',
-                'BB/9': '${player['bb_per_nine']}',
-                'K-BB%': '${player['k_bb_percent']}%',
-                '투구 WPA': '${player['pitching_wpa']}',
               },
             ),
           ]
         : <_StatGroup>[
             _StatGroup(
-              title: '기본 타격',
+              title: '',
               icon: Icons.sports_baseball_rounded,
               stats: {
                 '타율': '${player['avg']}',
                 '타수': '${player['ab']}',
                 '안타': '${player['h']}',
                 '홈런': '${player['hr']}',
-                '도루': '${player['sb'] ?? 0}',
                 '타점': '${player['rbi']}',
                 '득점': '${player['r']}',
-              },
-            ),
-            _StatGroup(
-              title: '타구와 출루',
-              icon: Icons.ads_click_rounded,
-              stats: {
+                '도루': '${player['sb'] ?? 0}',
                 '볼넷': '${player['bb']}',
                 '삼진': '${player['so']}',
-                '2루타': '${player['doubles']}',
-                '3루타': '${player['triples']}',
-                '사구': '${player['hbp']}',
-              },
-            ),
-            _StatGroup(
-              title: '비율과 기여',
-              icon: Icons.insights_rounded,
-              stats: {
                 '출루율': '${player['obp']}',
                 '장타율': '${player['slg']}',
-                'OPS': '${player['ops']}',
-                '추정 wOBA': '${player['estimated_woba']}',
-                '타격 WPA': '${player['batting_wpa']}',
-                '종합 WPA': '${player['total_wpa']}',
-              },
-            ),
-            _StatGroup(
-              title: '승리 생산 지표',
-              icon: Icons.emoji_events_rounded,
-              stats: {
-                '타점': '${player['rbi']}',
-                '득점': '${player['r']}',
-                'OPS': '${player['ops']}',
-                '출루율': '${player['obp']}',
-                '장타율': '${player['slg']}',
-                '타격 WPA': '${player['batting_wpa']}',
               },
             ),
           ];
-    final chart = _pitching
-        ? <String, num>{
-            '이닝': player['innings_pitched'] as num,
-            '삼진': player['strikeouts'] as num,
-            '피안타': player['hits'] as num,
-            '볼넷': player['walks'] as num,
-          }
-        : <String, num>{
-            '안타': player['h'] as num,
-            '홈런': player['hr'] as num,
-            '타점': player['rbi'] as num,
-            '볼넷': player['bb'] as num,
-          };
 
     showModalBottomSheet<void>(
       context: context,
@@ -232,33 +162,10 @@ class _StatsPageState extends State<StatsPage> {
               ),
             ),
             const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                gradient:
-                    LinearGradient(colors: [brand.primary, brand.secondary]),
-                borderRadius: BorderRadius.circular(28),
-              ),
-              child: Row(children: [
-                TeamPlayerAvatar(
-                    teamName: player['team_name'] as String, size: 78),
-                const SizedBox(width: 18),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(player['team_name'] as String,
-                            style: const TextStyle(color: Colors.white70)),
-                        Text(player['player_name'] as String,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 27,
-                                fontWeight: FontWeight.w900)),
-                        Text('${player['games']}경기',
-                            style: const TextStyle(color: Colors.white70)),
-                      ]),
-                ),
-              ]),
+            _PlayerDetailHero(
+              player: player,
+              brand: brand,
+              pitching: _pitching,
             ),
             const SizedBox(height: 16),
             if (asOfDate != null) ...[
@@ -290,9 +197,20 @@ class _StatsPageState extends State<StatsPage> {
               ]),
             ),
             const SizedBox(height: 16),
+            if (recentGames.isNotEmpty) ...[
+              _DetailReveal(
+                intervalStart: .08,
+                child: _RecentFiveGamePanel(
+                  games: recentGames,
+                  pitching: _pitching,
+                  accent: brand.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             ...statGroups.indexed.expand((entry) => [
                   _DetailReveal(
-                    intervalStart: .08 + entry.$1 * .08,
+                    intervalStart: .16 + entry.$1 * .08,
                     child: _StatGroupCard(
                       group: entry.$2,
                       accent: brand.primary,
@@ -300,20 +218,6 @@ class _StatsPageState extends State<StatsPage> {
                   ),
                   const SizedBox(height: 12),
                 ]),
-            _DetailReveal(
-              intervalStart: .32,
-              child: _SeasonBarChart(values: chart, color: brand.primary),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                  color: AppColors.cream,
-                  borderRadius: BorderRadius.circular(18)),
-              child: Text('계산 안내\n$methodology',
-                  style: const TextStyle(
-                      color: AppColors.muted, height: 1.5, fontSize: 12)),
-            ),
           ],
         ),
       ),
@@ -613,6 +517,95 @@ class _BelowQualificationCard extends StatelessWidget {
   }
 }
 
+class _PlayerDetailHero extends StatelessWidget {
+  const _PlayerDetailHero({
+    required this.player,
+    required this.brand,
+    required this.pitching,
+  });
+
+  final Map<String, dynamic> player;
+  final TeamBrand brand;
+  final bool pitching;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.ink, brand.primary, brand.secondary],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: .24)),
+      ),
+      child: Stack(children: [
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _StadiumBoardPainter(accent: brand.secondary),
+          ),
+        ),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            _BoardLight(color: brand.secondary),
+            const SizedBox(width: 7),
+            Text(
+              pitching ? 'BULLPEN PROFILE' : 'LINEUP PROFILE',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+            const Spacer(),
+            const Icon(Icons.stadium_rounded, color: Colors.white70, size: 18),
+          ]),
+          const SizedBox(height: 18),
+          Row(children: [
+            Container(
+              width: 82,
+              height: 82,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .92),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: TeamPlayerAvatar(
+                teamName: player['team_name'] as String,
+                size: 70,
+              ),
+            ),
+            const SizedBox(width: 17),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(player['team_name'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text(player['player_name'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 29,
+                            fontWeight: FontWeight.w900)),
+                  ]),
+            ),
+          ]),
+        ]),
+      ]),
+    );
+  }
+}
+
 class _PlayerCard extends StatelessWidget {
   const _PlayerCard(
       {required this.player,
@@ -651,68 +644,97 @@ class _PlayerCard extends StatelessWidget {
     };
     final label = display.$1;
     final value = display.$2;
-    return Card(
-      margin: EdgeInsets.zero,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: .045),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-          child: Row(children: [
-            Container(
-              width: 58,
-              height: 58,
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: brand.primary.withValues(alpha: .08),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: brand.primary.withValues(alpha: .12)),
-              ),
-              child: TeamPlayerAvatar(
-                teamName: player['team_name'] as String,
-                size: 48,
-              ),
+        child: Stack(children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _LineupCardPainter(accent: brand.primary),
             ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(player['player_name'] as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 3),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        _PlayerMetaPill(text: player['team_name'] as String),
-                        _PlayerMetaPill(text: '${player['games']}경기'),
-                        if (player['is_qualified'] == true)
-                          const _PlayerMetaPill(text: '규정 충족'),
-                      ],
-                    ),
-                  ]),
-            ),
-            const SizedBox(width: 8),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text('$value',
-                    style: TextStyle(
-                        color: brand.primary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+            child: Row(children: [
+              Container(
+                width: 62,
+                height: 62,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: brand.primary.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(19),
+                  border:
+                      Border.all(color: brand.primary.withValues(alpha: .18)),
+                ),
+                child: TeamPlayerAvatar(
+                  teamName: player['team_name'] as String,
+                  size: 52,
+                ),
               ),
-              Text(label,
-                  style: const TextStyle(color: AppColors.muted, fontSize: 10)),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(player['player_name'] as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 17, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 5),
+                      _PlayerMetaPill(text: player['team_name'] as String),
+                    ]),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 86,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                decoration: BoxDecoration(
+                  color: AppColors.ink,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: brand.primary.withValues(alpha: .55),
+                    width: 1.3,
+                  ),
+                ),
+                child: Column(children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('$value',
+                        style: TextStyle(
+                            color: brand.secondary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900)),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800)),
+                ]),
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.chevron_right_rounded, color: brand.primary),
             ]),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-          ]),
-        ),
+          ),
+        ]),
       ),
     );
   }
@@ -774,7 +796,7 @@ class _TopRecordStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (players.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 154,
+      height: 168,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _specs.length,
@@ -796,40 +818,51 @@ class _TopRecordStrip extends StatelessWidget {
           final player = ranked.first;
           final brand = TeamBrand.resolve(player['team_name'] as String);
           final value = player[spec.field];
-          return SizedBox(
-            width: 178,
-            child: Card(
-              margin: EdgeInsets.zero,
-              child: InkWell(
-                onTap: () => onPlayerTap(player),
-                borderRadius: BorderRadius.circular(24),
-                child: Padding(
+          return Container(
+            width: 184,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.ink, brand.primary.withValues(alpha: .72)],
+              ),
+              borderRadius: BorderRadius.circular(23),
+              border: Border.all(color: Colors.white.withValues(alpha: .2)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.ink.withValues(alpha: .14),
+                  blurRadius: 18,
+                  offset: const Offset(0, 9),
+                ),
+              ],
+            ),
+            child: InkWell(
+              onTap: () => onPlayerTap(player),
+              borderRadius: BorderRadius.circular(23),
+              child: Stack(children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _StadiumBoardPainter(accent: brand.secondary),
+                  ),
+                ),
+                Padding(
                   padding: const EdgeInsets.all(13),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: brand.primary.withValues(alpha: .1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            pitching
-                                ? Icons.speed_rounded
-                                : Icons.sports_baseball_rounded,
-                            color: brand.primary,
-                            size: 16,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          spec.label,
-                          style: const TextStyle(
-                            color: AppColors.muted,
-                            fontWeight: FontWeight.w900,
+                        _BoardLight(color: brand.secondary),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            spec.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ]),
@@ -837,47 +870,47 @@ class _TopRecordStrip extends StatelessWidget {
                       Row(children: [
                         TeamPlayerAvatar(
                           teamName: player['team_name'] as String,
-                          size: 42,
+                          size: 44,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                player['player_name'] as String,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              Text(
-                                player['team_name'] as String,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: AppColors.muted,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            player['player_name'] as String,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
                       ]),
-                      const SizedBox(height: 8),
-                      Text(
-                        '$value${spec.suffix}',
-                        style: TextStyle(
-                          color: brand.primary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
+                      const SizedBox(height: 9),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 11, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: .22),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '$value${spec.suffix}',
+                            style: TextStyle(
+                              color: brand.secondary,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
+              ]),
             ),
           );
         },
@@ -900,6 +933,107 @@ class _LeaderSpec {
   final String suffix;
 }
 
+class _BoardLight extends StatelessWidget {
+  const _BoardLight({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 9,
+      height: 9,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: .55),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StadiumBoardPainter extends CustomPainter {
+  const _StadiumBoardPainter({required this.accent});
+
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: .08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final glow = Paint()
+      ..color = accent.withValues(alpha: .12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+    canvas.drawArc(
+      Rect.fromCircle(
+        center: Offset(size.width * .84, size.height * .06),
+        radius: size.width * .32,
+      ),
+      .25,
+      2.25,
+      false,
+      glow,
+    );
+    final base = Path()
+      ..moveTo(size.width * .5, size.height * .44)
+      ..lineTo(size.width * .64, size.height * .62)
+      ..lineTo(size.width * .5, size.height * .8)
+      ..lineTo(size.width * .36, size.height * .62)
+      ..close();
+    canvas.drawPath(base, line);
+    canvas.drawLine(
+      Offset(size.width * .5, size.height * .8),
+      Offset(size.width * .18, size.height),
+      line,
+    );
+    canvas.drawLine(
+      Offset(size.width * .5, size.height * .8),
+      Offset(size.width * .82, size.height),
+      line,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _StadiumBoardPainter oldDelegate) =>
+      oldDelegate.accent != accent;
+}
+
+class _LineupCardPainter extends CustomPainter {
+  const _LineupCardPainter({required this.accent});
+
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = accent.withValues(alpha: .07)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final path = Path()
+      ..moveTo(size.width * .78, 0)
+      ..lineTo(size.width * .95, size.height * .52)
+      ..lineTo(size.width * .78, size.height)
+      ..moveTo(size.width * .04, size.height * .5)
+      ..lineTo(size.width * .2, size.height * .36)
+      ..lineTo(size.width * .36, size.height * .5)
+      ..lineTo(size.width * .2, size.height * .64)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineupCardPainter oldDelegate) =>
+      oldDelegate.accent != accent;
+}
+
 class _StatsHeader extends StatelessWidget {
   const _StatsHeader({
     required this.season,
@@ -913,28 +1047,86 @@ class _StatsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
       decoration: BoxDecoration(
-          color: AppColors.forest, borderRadius: BorderRadius.circular(30)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(pitching ? Icons.speed_rounded : Icons.insights_rounded,
-            color: AppColors.butter, size: 38),
-        const SizedBox(height: 34),
-        const Text('SEASON SABERMETRICS',
-            style: TextStyle(
-                color: AppColors.leaf,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF182744), Color(0xFF234D3D), Color(0xFF7F2635)],
+        ),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withValues(alpha: .28)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: .16),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Stack(children: [
+        const Positioned.fill(
+          child: CustomPaint(
+            painter: _StadiumBoardPainter(accent: AppColors.butter),
+          ),
+        ),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const _BoardLight(color: AppColors.coral),
+            const SizedBox(width: 6),
+            const _BoardLight(color: AppColors.butter),
+            const SizedBox(width: 6),
+            const _BoardLight(color: AppColors.leaf),
+            const Spacer(),
+            Text(
+              pitching ? 'PITCHER BOARD' : 'BATTER BOARD',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
-                fontSize: 12)),
-        const SizedBox(height: 8),
-        Text('$season ${pitching ? '투수' : '타자'} 시즌 지표',
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 27,
-                fontWeight: FontWeight.w900)),
-        const SizedBox(height: 5),
-        Text('$playerCount명의 시즌 누적 기록',
-            style: const TextStyle(color: Colors.white70)),
+                letterSpacing: 1.1,
+              ),
+            ),
+          ]),
+          const SizedBox(height: 34),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .9),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(
+                pitching ? Icons.speed_rounded : Icons.sports_baseball_rounded,
+                color: AppColors.ink,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$season SEASON',
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 14),
+          Text('$season ${pitching ? '투수' : '타자'} 시즌 지표',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 27,
+                  fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Icon(Icons.stadium_rounded,
+                color: AppColors.butter.withValues(alpha: .9), size: 18),
+            const SizedBox(width: 7),
+            Text('$playerCount명 라인업 기록판',
+                style: const TextStyle(
+                    color: Colors.white70, fontWeight: FontWeight.w800)),
+          ]),
+        ]),
       ]),
     );
   }
@@ -949,17 +1141,33 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(color: AppColors.muted)),
-          const SizedBox(height: 8),
-          Text(value,
-              style: TextStyle(
-                  color: color, fontSize: 27, fontWeight: FontWeight.w900)),
-        ]),
+    return Container(
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AppColors.ink,
+        borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: color.withValues(alpha: .45)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: .08),
+            blurRadius: 16,
+            offset: const Offset(0, 7),
+          ),
+        ],
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _BoardLight(color: color),
+          const SizedBox(width: 7),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white70, fontWeight: FontWeight.w900)),
+        ]),
+        const SizedBox(height: 8),
+        Text(value,
+            style: TextStyle(
+                color: color, fontSize: 28, fontWeight: FontWeight.w900)),
+      ]),
     );
   }
 }
@@ -987,7 +1195,7 @@ class _StatGroupCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: const Color(0xFFFFFCF4),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.line),
         boxShadow: [
@@ -999,27 +1207,29 @@ class _StatGroupCard extends StatelessWidget {
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: .1),
-              borderRadius: BorderRadius.circular(11),
+        if (group.title.isNotEmpty) ...[
+          Row(children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: .1),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(group.icon, color: accent, size: 18),
             ),
-            child: Icon(group.icon, color: accent, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            group.title,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+            const SizedBox(width: 10),
+            Text(
+              group.title,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-        ]),
-        const SizedBox(height: 13),
+          ]),
+          const SizedBox(height: 13),
+        ],
         LayoutBuilder(
           builder: (context, constraints) {
             const spacing = 9.0;
@@ -1054,8 +1264,9 @@ class _StatTile extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 69),
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
       decoration: BoxDecoration(
-        color: AppColors.cream,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: AppColors.line.withValues(alpha: .72)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1109,51 +1320,221 @@ class _DetailReveal extends StatelessWidget {
   }
 }
 
-class _SeasonBarChart extends StatelessWidget {
-  const _SeasonBarChart({required this.values, required this.color});
-  final Map<String, num> values;
-  final Color color;
+class _RecentFiveGamePanel extends StatelessWidget {
+  const _RecentFiveGamePanel({
+    required this.games,
+    required this.pitching,
+    required this.accent,
+  });
+
+  final List<Map<String, dynamic>> games;
+  final bool pitching;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    final maxValue =
-        values.values.fold<num>(1, (max, value) => value > max ? value : max);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('시즌 기록 차트',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 18),
-          ...values.entries.map((entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(children: [
-                  SizedBox(
-                      width: 42,
-                      child: Text(entry.key,
-                          style: const TextStyle(
-                              color: AppColors.muted, fontSize: 11))),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(99),
-                      child: LinearProgressIndicator(
-                        value: entry.value / maxValue,
-                        minHeight: 10,
-                        color: color,
-                        backgroundColor: color.withValues(alpha: .12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  SizedBox(
-                      width: 34,
-                      child: Text('${entry.value}',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(fontWeight: FontWeight.w800))),
-                ]),
-              )),
-        ]),
+    final ordered = games.take(5).toList().reversed.toList();
+    final values = ordered.map((game) {
+      if (pitching) {
+        final era = game['era_after_game'] as num?;
+        if (era != null) return era.toDouble();
+        final innings = (game['innings_pitched'] as num?)?.toDouble() ?? 0;
+        final earned = (game['earned_runs'] as num?)?.toDouble() ?? 0;
+        return innings <= 0 ? 0.0 : earned * 9 / innings;
+      }
+      final avg = game['avg_after_game'] as num?;
+      if (avg != null) return avg.toDouble();
+      final ab = (game['ab'] as num?)?.toDouble() ?? 0;
+      final hits = (game['h'] as num?)?.toDouble() ?? 0;
+      return ab <= 0 ? 0.0 : hits / ab;
+    }).toList();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF4),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.line),
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.timeline_rounded, color: accent, size: 18),
+          ),
+          const SizedBox(width: 10),
+          const Text(
+            '최근 5경기',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const Spacer(),
+          Icon(Icons.stadium_rounded, color: accent, size: 18),
+        ]),
+        const SizedBox(height: 12),
+        if (pitching) ...[
+          SizedBox(
+            height: 126,
+            child: CustomPaint(
+              painter: _RecentLineChartPainter(values: values, color: accent),
+              child: const SizedBox.expand(),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        ...ordered.map((game) => _RecentGameSummaryTile(
+              game: game,
+              pitching: pitching,
+              accent: accent,
+            )),
+      ]),
     );
   }
+}
+
+class _RecentGameSummaryTile extends StatelessWidget {
+  const _RecentGameSummaryTile({
+    required this.game,
+    required this.pitching,
+    required this.accent,
+  });
+
+  final Map<String, dynamic> game;
+  final bool pitching;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = DateTime.parse(game['game_date'] as String);
+    final dateText = '${date.month}.${date.day.toString().padLeft(2, '0')}';
+    final value = pitching
+        ? '${game['innings_pitched']}이닝 · ${game['earned_runs']}자책 · ${game['strikeouts']}K'
+        : '${game['ab']}타수 ${game['h']}안타 · ${game['rbi']}타점 · ${game['bb']}볼넷';
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(children: [
+        Container(
+          width: 54,
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: .1),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Text(
+            dateText,
+            style: TextStyle(
+              color: accent,
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'vs ${game['opponent_name']}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _RecentLineChartPainter extends CustomPainter {
+  const _RecentLineChartPainter({required this.values, required this.color});
+
+  final List<double> values;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty) return;
+    final maxValue =
+        values.fold<double>(1, (max, value) => value > max ? value : max);
+    final minValue = values.fold<double>(
+        maxValue, (min, value) => value < min ? value : min);
+    final range = (maxValue - minValue).abs() < .001 ? 1 : maxValue - minValue;
+    final chartRect = Rect.fromLTWH(8, 10, size.width - 16, size.height - 34);
+    final grid = Paint()
+      ..color = AppColors.line.withValues(alpha: .7)
+      ..strokeWidth = 1;
+    for (var i = 0; i < 4; i++) {
+      final y = chartRect.top + chartRect.height * i / 3;
+      canvas.drawLine(
+          Offset(chartRect.left, y), Offset(chartRect.right, y), grid);
+    }
+    final points = <Offset>[];
+    for (var i = 0; i < values.length; i++) {
+      final x = values.length == 1
+          ? chartRect.center.dx
+          : chartRect.left + chartRect.width * i / (values.length - 1);
+      final y = chartRect.bottom -
+          ((values[i] - minValue) / range) * chartRect.height;
+      points.add(Offset(x, y));
+    }
+    final line = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round;
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    canvas.drawPath(path, line);
+    for (final point in points) {
+      canvas.drawCircle(point, 4.5, Paint()..color = Colors.white);
+      canvas.drawCircle(
+          point,
+          4.5,
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2);
+    }
+    final labelPainter = TextPainter(
+      text: TextSpan(
+        text: '최근 ERA ${values.last.toStringAsFixed(2)}',
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    labelPainter.paint(canvas, Offset(chartRect.right - labelPainter.width, 0));
+  }
+
+  @override
+  bool shouldRepaint(covariant _RecentLineChartPainter oldDelegate) =>
+      oldDelegate.values != values || oldDelegate.color != color;
 }

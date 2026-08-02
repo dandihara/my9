@@ -54,6 +54,10 @@ Thumbs.db
 Desktop.ini
 *.swp
 *.tmp
+*.tmp.png
+*.new.png
+*.final.png
+*.optimized.png
 *.bak
 *.log
 

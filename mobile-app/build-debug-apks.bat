@@ -34,29 +34,29 @@ if errorlevel 1 (
 pushd "%APP_DIR%"
 if errorlevel 1 exit /b 1
 
-echo [1/3] Building local API debug APK...
-call flutter build apk --debug --dart-define=API_BASE_URL=%LOCAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=cheolwoong
+echo [1/3] Building local API arm64 debug APK...
+call flutter build apk --debug --split-per-abi --dart-define=API_BASE_URL=%LOCAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=cheolwoong
 if errorlevel 1 goto :failed
-copy /Y "build\app\outputs\flutter-apk\app-debug.apk" "build\app\outputs\flutter-apk\MY9-local-debug.apk" >nul
-if errorlevel 1 goto :failed
-
-echo [2/3] Building external API debug APK with Cheolwoong Doosan sections...
-call flutter build apk --debug --dart-define=API_BASE_URL=%EXTERNAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=cheolwoong
-if errorlevel 1 goto :failed
-copy /Y "build\app\outputs\flutter-apk\app-debug.apk" "build\app\outputs\flutter-apk\MY9-external-cheolwoong-debug.apk" >nul
+copy /Y "build\app\outputs\flutter-apk\app-arm64-v8a-debug.apk" "build\app\outputs\flutter-apk\MY9-local-arm64-debug.apk" >nul
 if errorlevel 1 goto :failed
 
-echo [3/3] Building external API debug APK with Mangom Doosan sections...
-call flutter build apk --debug --dart-define=API_BASE_URL=%EXTERNAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=mangom
+echo [2/3] Building external API arm64 debug APK with Cheolwoong Doosan sections...
+call flutter build apk --debug --split-per-abi --dart-define=API_BASE_URL=%EXTERNAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=cheolwoong
 if errorlevel 1 goto :failed
-copy /Y "build\app\outputs\flutter-apk\app-debug.apk" "build\app\outputs\flutter-apk\MY9-external-mangom-debug.apk" >nul
+copy /Y "build\app\outputs\flutter-apk\app-arm64-v8a-debug.apk" "build\app\outputs\flutter-apk\MY9-external-cheolwoong-arm64-debug.apk" >nul
+if errorlevel 1 goto :failed
+
+echo [3/3] Building external API arm64 debug APK with Mangom Doosan sections...
+call flutter build apk --debug --split-per-abi --dart-define=API_BASE_URL=%EXTERNAL_API_URL% --dart-define=DOOSAN_SECTION_THEME=mangom
+if errorlevel 1 goto :failed
+copy /Y "build\app\outputs\flutter-apk\app-arm64-v8a-debug.apk" "build\app\outputs\flutter-apk\MY9-external-mangom-arm64-debug.apk" >nul
 if errorlevel 1 goto :failed
 
 echo.
 echo Build complete:
-echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-local-debug.apk
-echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-external-cheolwoong-debug.apk
-echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-external-mangom-debug.apk
+echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-local-arm64-debug.apk
+echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-external-cheolwoong-arm64-debug.apk
+echo   %APP_DIR%build\app\outputs\flutter-apk\MY9-external-mangom-arm64-debug.apk
 popd
 exit /b 0
 

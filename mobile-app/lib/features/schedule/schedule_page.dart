@@ -138,121 +138,123 @@ class _SchedulePageState extends State<SchedulePage> {
     }
     return Scaffold(
       appBar: AppBar(title: const Text('경기 일정')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-                child: Column(
-                  children: [
-                    TableCalendar<GameModel>(
-                      firstDay: DateTime.utc(2020, 1, 1),
-                      lastDay: DateTime.utc(2030, 12, 31),
-                      focusedDay: _focusedDay,
-                      rowHeight: 54,
-                      daysOfWeekHeight: 28,
-                      selectedDayPredicate: (day) =>
-                          isSameDay(_selectedDay, day),
-                      eventLoader: (day) => _games[_key(day)] ?? const [],
-                      calendarBuilders: CalendarBuilders<GameModel>(
-                        markerBuilder: (context, day, events) {
-                          if (events.isEmpty) return null;
-                          final results = events
-                              .map((game) => _attendanceResults[game.id])
-                              .whereType<String>()
-                              .toSet()
-                              .toList();
-                          if (results.isEmpty) {
-                            return const Positioned(
-                              bottom: 4,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: AppColors.coral,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: SizedBox(width: 5, height: 5),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final landscape = constraints.maxWidth > constraints.maxHeight;
+          final calendarRowHeight = landscape ? 36.0 : 54.0;
+          final daysOfWeekHeight = landscape ? 22.0 : 28.0;
+          final calendarPadding = landscape
+              ? const EdgeInsets.fromLTRB(8, 6, 8, 8)
+              : const EdgeInsets.fromLTRB(8, 8, 8, 12);
+          final calendarCard = Card(
+            child: Padding(
+              padding: calendarPadding,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TableCalendar<GameModel>(
+                    firstDay: DateTime.utc(2020, 1, 1),
+                    lastDay: DateTime.utc(2030, 12, 31),
+                    focusedDay: _focusedDay,
+                    rowHeight: calendarRowHeight,
+                    daysOfWeekHeight: daysOfWeekHeight,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    eventLoader: (day) => _games[_key(day)] ?? const [],
+                    calendarBuilders: CalendarBuilders<GameModel>(
+                      markerBuilder: (context, day, events) {
+                        if (events.isEmpty) return null;
+                        final results = events
+                            .map((game) => _attendanceResults[game.id])
+                            .whereType<String>()
+                            .toSet()
+                            .toList();
+                        if (results.isEmpty) {
+                          return const Positioned(
+                            bottom: 4,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: AppColors.coral,
+                                shape: BoxShape.circle,
                               ),
-                            );
-                          }
-                          return Positioned(
-                            bottom: 0,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: results
-                                  .take(2)
-                                  .map((result) => _AttendanceResultMarker(
-                                        result: result,
-                                      ))
-                                  .toList(),
+                              child: SizedBox(width: 5, height: 5),
                             ),
                           );
-                        },
-                      ),
-                      headerStyle: const HeaderStyle(
-                        titleCentered: true,
-                        formatButtonVisible: false,
-                        titleTextStyle: TextStyle(
-                            color: AppColors.ink,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w900),
-                        leftChevronIcon: Icon(Icons.chevron_left_rounded,
-                            color: AppColors.ink),
-                        rightChevronIcon: Icon(Icons.chevron_right_rounded,
-                            color: AppColors.ink),
-                      ),
-                      calendarStyle: const CalendarStyle(
-                        todayDecoration: BoxDecoration(
-                            color: AppColors.butter, shape: BoxShape.circle),
-                        todayTextStyle: TextStyle(
-                            color: AppColors.ink, fontWeight: FontWeight.w800),
-                        selectedDecoration: BoxDecoration(
-                            color: AppColors.ink, shape: BoxShape.circle),
-                        markerDecoration: BoxDecoration(
-                            color: AppColors.coral, shape: BoxShape.circle),
-                        markerSize: 5,
-                        markersMaxCount: 1,
-                      ),
-                      onDaySelected: (selected, _) {
-                        final monthChanged =
-                            selected.year != _focusedDay.year ||
-                                selected.month != _focusedDay.month;
-                        setState(() {
-                          _selectedDay = selected;
-                          _focusedDay = selected;
-                        });
-                        if (monthChanged) _loadMonth(selected);
-                      },
-                      onPageChanged: (focused) {
-                        setState(() {
-                          _focusedDay = focused;
-                          if (_selectedDay.year != focused.year ||
-                              _selectedDay.month != focused.month) {
-                            _selectedDay =
-                                DateTime(focused.year, focused.month, 1);
-                          }
-                        });
-                        _loadMonth(focused);
+                        }
+                        return Positioned(
+                          bottom: 0,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: results
+                                .take(2)
+                                .map((result) => _AttendanceResultMarker(
+                                      result: result,
+                                    ))
+                                .toList(),
+                          ),
+                        );
                       },
                     ),
-                    const SizedBox(height: 8),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _CalendarLegend(label: '승', color: AppColors.forest),
-                        SizedBox(width: 12),
-                        _CalendarLegend(label: '무', color: AppColors.muted),
-                        SizedBox(width: 12),
-                        _CalendarLegend(label: '패', color: AppColors.coral),
-                      ],
+                    headerStyle: const HeaderStyle(
+                      titleCentered: true,
+                      formatButtonVisible: false,
+                      titleTextStyle: TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900),
+                      leftChevronIcon: Icon(Icons.chevron_left_rounded,
+                          color: AppColors.ink),
+                      rightChevronIcon: Icon(Icons.chevron_right_rounded,
+                          color: AppColors.ink),
                     ),
-                  ],
-                ),
+                    calendarStyle: const CalendarStyle(
+                      todayDecoration: BoxDecoration(
+                          color: AppColors.butter, shape: BoxShape.circle),
+                      todayTextStyle: TextStyle(
+                          color: AppColors.ink, fontWeight: FontWeight.w800),
+                      selectedDecoration: BoxDecoration(
+                          color: AppColors.ink, shape: BoxShape.circle),
+                      markerDecoration: BoxDecoration(
+                          color: AppColors.coral, shape: BoxShape.circle),
+                      markerSize: 5,
+                      markersMaxCount: 1,
+                    ),
+                    onDaySelected: (selected, _) {
+                      final monthChanged = selected.year != _focusedDay.year ||
+                          selected.month != _focusedDay.month;
+                      setState(() {
+                        _selectedDay = selected;
+                        _focusedDay = selected;
+                      });
+                      if (monthChanged) _loadMonth(selected);
+                    },
+                    onPageChanged: (focused) {
+                      setState(() {
+                        _focusedDay = focused;
+                        if (_selectedDay.year != focused.year ||
+                            _selectedDay.month != focused.month) {
+                          _selectedDay =
+                              DateTime(focused.year, focused.month, 1);
+                        }
+                      });
+                      _loadMonth(focused);
+                    },
+                  ),
+                  SizedBox(height: landscape ? 5 : 8),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _CalendarLegend(label: '승', color: AppColors.forest),
+                      SizedBox(width: 12),
+                      _CalendarLegend(label: '무', color: AppColors.muted),
+                      SizedBox(width: 12),
+                      _CalendarLegend(label: '패', color: AppColors.coral),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-          Padding(
+          );
+          final selectedHeader = Padding(
             padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
             child: Row(
               children: [
@@ -264,34 +266,66 @@ class _SchedulePageState extends State<SchedulePage> {
                         color: AppColors.coral, fontWeight: FontWeight.w900)),
               ],
             ),
-          ),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? AppErrorView(
-                        message: _error!,
-                        onRetry: () => _loadMonth(_focusedDay),
-                      )
-                    : selectedGames.isEmpty
-                        ? const _EmptySchedule()
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 28),
-                            itemCount: selectedGames.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) => _GameCard(
-                              game: selectedGames[index],
-                              highlighted: selectedGames[index].id ==
-                                  widget.highlightGameId,
-                              status: _status(selectedGames[index].status),
-                              statusColor:
-                                  _statusColor(selectedGames[index].status),
-                              onAttendanceSaved: _loadAttendances,
-                            ),
+          );
+          final gameList = _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? AppErrorView(
+                      message: _error!,
+                      onRetry: () => _loadMonth(_focusedDay),
+                    )
+                  : selectedGames.isEmpty
+                      ? const _EmptySchedule()
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 28),
+                          itemCount: selectedGames.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, index) => _GameCard(
+                            game: selectedGames[index],
+                            highlighted: selectedGames[index].id ==
+                                widget.highlightGameId,
+                            status: _status(selectedGames[index].status),
+                            statusColor:
+                                _statusColor(selectedGames[index].status),
+                            onAttendanceSaved: _loadAttendances,
                           ),
-          ),
-        ],
+                        );
+
+          if (landscape) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 11,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 8, 12),
+                    child: calendarCard,
+                  ),
+                ),
+                Expanded(
+                  flex: 9,
+                  child: Column(
+                    children: [
+                      selectedHeader,
+                      Expanded(child: gameList),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                child: calendarCard,
+              ),
+              selectedHeader,
+              Expanded(child: gameList),
+            ],
+          );
+        },
       ),
     );
   }

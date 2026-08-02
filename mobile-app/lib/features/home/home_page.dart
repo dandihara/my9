@@ -116,6 +116,9 @@ class _HomePageState extends State<HomePage> {
         final darkWeather =
             weatherCondition == 'night' || weatherCondition == 'rain';
         final weatherForeground = darkWeather ? Colors.white : AppColors.ink;
+        final headerBackground = darkWeather
+            ? const Color(0xFF22324F).withValues(alpha: .94)
+            : AppColors.white.withValues(alpha: .9);
         final weatherButtonStyle = IconButton.styleFrom(
           foregroundColor: weatherForeground,
           backgroundColor:
@@ -128,7 +131,10 @@ class _HomePageState extends State<HomePage> {
             ),
             Scaffold(
               appBar: AppBar(
+                backgroundColor: headerBackground,
                 foregroundColor: weatherForeground,
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 0,
                 title: Text(
                   'MY9',
                   style: TextStyle(color: weatherForeground, fontFamily: 'Jua'),
@@ -163,7 +169,7 @@ class _HomePageState extends State<HomePage> {
                     physics: const NeverScrollableScrollPhysics(),
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: .72,
+                    childAspectRatio: .78,
                     children: [
                       MainMenuButton(
                         title: '경기 일정',
@@ -201,6 +207,7 @@ class _HomePageState extends State<HomePage> {
                         title: '팀 순위',
                         subtitle: '현재 시즌 순위표',
                         icon: Icons.emoji_events_rounded,
+                        assetPath: sectionAsset(TeamIconSection.standings),
                         tint: const Color(0xFFFFD98E),
                         onTap: () => context.push('/standings'),
                       ),
@@ -208,6 +215,7 @@ class _HomePageState extends State<HomePage> {
                         title: '직관 리그',
                         subtitle: '친구들과 승·무·패 대결',
                         icon: Icons.groups_rounded,
+                        assetPath: sectionAsset(TeamIconSection.league),
                         tint: const Color(0xFFBDE8FF),
                         onTap: () => context.push('/attendance-leagues'),
                       ),
@@ -354,9 +362,19 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [brand.primary, brand.secondary],
+                  colors: [
+                    const Color(0xFF10172A),
+                    brand.primary.withValues(alpha: .92),
+                    const Color(0xFF263755),
+                    brand.secondary.withValues(alpha: .78),
+                  ],
+                  stops: const [0, .34, .72, 1],
                 ),
                 borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .7),
+                  width: 1.4,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: brand.primary.withValues(alpha: .22),
@@ -366,6 +384,11 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
                 ],
               ),
               child: Stack(children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _DashboardStadiumPainter(brand),
+                  ),
+                ),
                 Positioned(
                   right: -38,
                   top: -45,
@@ -413,7 +436,7 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
                             ),
                           const Spacer(),
                           Text(
-                            'HOME SCOREBOARD',
+                            'MY9 BALLPARK',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: .68),
                               fontSize: 9,
@@ -429,24 +452,10 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: .13),
-                                  borderRadius: BorderRadius.circular(99),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: .12),
-                                  ),
-                                ),
-                                child: Text(
-                                  '$teamName · ${summary['season_year']}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
+                              _BallparkTeamPlate(
+                                teamName: teamName,
+                                seasonYear: summary['season_year'] as int,
+                                brand: brand,
                               ),
                               const SizedBox(height: 10),
                               Row(
@@ -472,47 +481,24 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
                             ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.fromLTRB(14, 11, 14, 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: .12),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: .1)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '${summary['wins']}승 ${summary['losses']}패 ${summary['draws']}무',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                '승률 ${summary['win_rate']}%',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
+                        _RecordScoreboard(
+                          wins: summary['wins'] as int,
+                          losses: summary['losses'] as int,
+                          draws: summary['draws'] as int,
+                          winRate: summary['win_rate'],
+                          brand: brand,
                         ),
                       ]),
                       const SizedBox(height: 20),
                       Row(children: [
-                        const Text('RECENT 5',
+                        const Text('최근 경기 전적',
                             style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 1.1)),
+                                letterSpacing: .2)),
                         const Spacer(),
-                        Text('최근 흐름',
+                        Text('LAST 5',
                             style: TextStyle(
                                 color: Colors.white.withValues(alpha: .55),
                                 fontSize: 10)),
@@ -602,6 +588,300 @@ String _seasonalBackdropCondition(int month) => switch (month) {
       _ => 'winter',
     };
 
+class _BallparkTeamPlate extends StatelessWidget {
+  const _BallparkTeamPlate({
+    required this.teamName,
+    required this.seasonYear,
+    required this.brand,
+  });
+
+  final String teamName;
+  final int seasonYear;
+  final TeamBrand brand;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(9, 7, 13, 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C1426).withValues(alpha: .72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: .22)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .18),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        CustomPaint(
+          size: const Size(30, 24),
+          painter: _HomePlatePainter(brand.primary),
+        ),
+        const SizedBox(width: 9),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            teamName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            '$seasonYear SEASON',
+            style: TextStyle(
+              color: AppColors.butter.withValues(alpha: .92),
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .8,
+            ),
+          ),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _RecordScoreboard extends StatelessWidget {
+  const _RecordScoreboard({
+    required this.wins,
+    required this.losses,
+    required this.draws,
+    required this.winRate,
+    required this.brand,
+  });
+
+  final int wins;
+  final int losses;
+  final int draws;
+  final Object? winRate;
+  final TeamBrand brand;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(13, 10, 13, 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFF08101F).withValues(alpha: .82),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.butter.withValues(alpha: .34)),
+        boxShadow: [
+          BoxShadow(
+            color: brand.primary.withValues(alpha: .24),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          _ScoreCell(label: 'W', value: wins, color: AppColors.leaf),
+          const SizedBox(width: 7),
+          _ScoreCell(label: 'L', value: losses, color: AppColors.coral),
+          const SizedBox(width: 7),
+          _ScoreCell(label: 'D', value: draws, color: Colors.white70),
+        ]),
+        const SizedBox(height: 7),
+        Text(
+          '승률 $winRate%',
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _ScoreCell extends StatelessWidget {
+  const _ScoreCell({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      Text(label,
+          style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .6)),
+      Text('$value',
+          style: const TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+    ]);
+  }
+}
+
+class _HomePlatePainter extends CustomPainter {
+  const _HomePlatePainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final plate = Path()
+      ..moveTo(size.width * .14, 0)
+      ..lineTo(size.width * .86, 0)
+      ..lineTo(size.width * .86, size.height * .56)
+      ..lineTo(size.width * .5, size.height)
+      ..lineTo(size.width * .14, size.height * .56)
+      ..close();
+    canvas.drawPath(
+      plate,
+      Paint()..color = Colors.white.withValues(alpha: .95),
+    );
+    canvas.drawPath(
+      plate,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    canvas.drawCircle(
+      Offset(size.width * .5, size.height * .36),
+      5,
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HomePlatePainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+class _DashboardStadiumPainter extends CustomPainter {
+  const _DashboardStadiumPainter(this.brand);
+
+  final TeamBrand brand;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final night = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(.65, -.35),
+        radius: .9,
+        colors: [
+          Colors.white.withValues(alpha: .22),
+          Colors.transparent,
+        ],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, night);
+
+    final glow = Paint()
+      ..color = Colors.white.withValues(alpha: .26)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 22);
+    canvas.drawCircle(Offset(size.width * .78, size.height * .12), 58, glow);
+    canvas.drawCircle(Offset(size.width * .08, size.height * .34), 38, glow);
+
+    final stand = Paint()
+      ..color = Colors.white.withValues(alpha: .13)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+    for (var i = 0; i < 6; i++) {
+      canvas.drawArc(
+        Rect.fromLTWH(
+          -size.width * .22,
+          size.height * (.24 + i * .045),
+          size.width * 1.44,
+          size.height * (.42 + i * .03),
+        ),
+        3.38,
+        -.72,
+        false,
+        stand,
+      );
+    }
+
+    final lightPole = Paint()
+      ..color = Colors.white.withValues(alpha: .16)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(size.width * .16, size.height * .08),
+      Offset(size.width * .16, size.height * .38),
+      lightPole,
+    );
+    for (var i = 0; i < 4; i++) {
+      canvas.drawCircle(
+        Offset(size.width * (.115 + i * .03), size.height * .08),
+        3.2,
+        Paint()..color = Colors.white.withValues(alpha: .52),
+      );
+    }
+
+    final stitch = Paint()
+      ..color = Colors.white.withValues(alpha: .16)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+      Rect.fromLTWH(size.width - 86, -28, 96, 96),
+      1.65,
+      1.75,
+      false,
+      stitch,
+    );
+    for (var i = 0; i < 7; i++) {
+      final y = 7.0 + i * 9;
+      canvas.drawLine(
+        Offset(size.width - 39, y),
+        Offset(size.width - 28, y + 5),
+        stitch,
+      );
+    }
+
+    final field = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          brand.secondary.withValues(alpha: .16),
+          const Color(0xFF5BBF9F).withValues(alpha: .12),
+        ],
+      ).createShader(Offset.zero & size);
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, size.height)
+        ..lineTo(size.width * .5, size.height * .58)
+        ..lineTo(size.width, size.height)
+        ..close(),
+      field,
+    );
+    final diamond = Paint()
+      ..color = Colors.white.withValues(alpha: .12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final center = Offset(size.width * .5, size.height * .78);
+    final base = Path()
+      ..moveTo(center.dx, center.dy - 42)
+      ..lineTo(center.dx + 46, center.dy)
+      ..lineTo(center.dx, center.dy + 42)
+      ..lineTo(center.dx - 46, center.dy)
+      ..close();
+    canvas.drawPath(base, diamond);
+    canvas.drawCircle(
+        center, 4, Paint()..color = Colors.white.withValues(alpha: .24));
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashboardStadiumPainter oldDelegate) =>
+      oldDelegate.brand != brand;
+}
+
 class _RecentGameChip extends StatelessWidget {
   const _RecentGameChip({required this.game});
 
@@ -610,31 +890,50 @@ class _RecentGameChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final result = game['result'] as String?;
-    final label = switch (result) {
-      'win' => '승',
-      'loss' => '패',
-      _ => '무',
+    final (label, accent) = switch (result) {
+      'win' => ('승', AppColors.leaf),
+      'loss' => ('패', AppColors.coral),
+      _ => ('무', Colors.white70),
     };
     return Container(
       height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: result == 'win' ? .94 : .7),
-        borderRadius: BorderRadius.circular(13),
+        color: const Color(0xFF09111F).withValues(alpha: .68),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: .4)),
       ),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          width: 18,
+          height: 3,
+          decoration: BoxDecoration(
+            color: accent,
+            borderRadius: BorderRadius.circular(99),
+          ),
+        ),
+        const SizedBox(height: 5),
         FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text('${game['opponent_name']} $label',
-              maxLines: 1,
-              style: TextStyle(
-                  color: result == 'win' ? AppColors.forest : AppColors.ink,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900)),
+          child: Text(
+            '${game['opponent_name']}',
+            maxLines: 1,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ),
         const SizedBox(height: 2),
-        Text('${game['my_score']}:${game['opponent_score']}',
-            style: const TextStyle(fontSize: 9, color: AppColors.ink)),
+        Text(
+          '${game['my_score']}:${game['opponent_score']} $label',
+          style: TextStyle(
+            fontSize: 10,
+            color: accent,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ]),
     );
   }

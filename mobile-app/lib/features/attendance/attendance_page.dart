@@ -34,12 +34,16 @@ class _AttendancePageState extends State<AttendancePage> {
     ]).then((responses) {
       final recordsResponse = responses[0];
       final summaryResponse = responses[1];
-      final records = (recordsResponse.data as List<dynamic>)
+      final rawRecords =
+          (recordsResponse.data as List<dynamic>?) ?? const <dynamic>[];
+      final rawSummary = (summaryResponse.data as Map<String, dynamic>?) ??
+          const <String, dynamic>{};
+      final records = rawRecords
           .map((item) => AttendanceModel.fromJson(item as Map<String, dynamic>))
           .toList();
       return _AttendanceData(
         records: records,
-        summary: summaryResponse.data as Map<String, dynamic>,
+        summary: rawSummary,
       );
     });
   }
@@ -140,6 +144,76 @@ class _AttendanceData {
   final Map<String, dynamic> summary;
 }
 
+class _AttendanceBoardLight extends StatelessWidget {
+  const _AttendanceBoardLight({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 9,
+      height: 9,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: .55), blurRadius: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttendanceStadiumPainter extends CustomPainter {
+  const _AttendanceStadiumPainter({required this.accent});
+
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: .08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final glow = Paint()
+      ..color = accent.withValues(alpha: .12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+    canvas.drawArc(
+      Rect.fromCircle(
+        center: Offset(size.width * .84, size.height * .06),
+        radius: size.width * .34,
+      ),
+      .2,
+      2.35,
+      false,
+      glow,
+    );
+    final base = Path()
+      ..moveTo(size.width * .5, size.height * .5)
+      ..lineTo(size.width * .64, size.height * .66)
+      ..lineTo(size.width * .5, size.height * .84)
+      ..lineTo(size.width * .36, size.height * .66)
+      ..close();
+    canvas.drawPath(base, line);
+    canvas.drawLine(
+      Offset(size.width * .5, size.height * .84),
+      Offset(size.width * .12, size.height),
+      line,
+    );
+    canvas.drawLine(
+      Offset(size.width * .5, size.height * .84),
+      Offset(size.width * .88, size.height),
+      line,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _AttendanceStadiumPainter oldDelegate) =>
+      oldDelegate.accent != accent;
+}
+
 class _AttendanceInsightCard extends StatelessWidget {
   const _AttendanceInsightCard({
     required this.summary,
@@ -156,87 +230,134 @@ class _AttendanceInsightCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hitters =
         summary['top_batting_players'] as List<dynamic>? ?? const [];
-    final pitchers = summary['top_pitchers'] as List<dynamic>;
+    final pitchers = summary['top_pitchers'] as List<dynamic>? ?? const [];
     final decisiveHitLeaders =
         summary['decisive_hit_leaders'] as List<dynamic>? ?? const [];
     final weekdays = (summary['weekday_records'] as List<dynamic>? ?? const []);
     final stadiums = (summary['stadium_records'] as List<dynamic>? ?? const []);
-    final qualifiedGames = summary['qualified_games'] as int;
+    final qualifiedGames =
+        (summary['qualified_games'] as num?)?.toInt() ?? records.length;
+    final wins = (summary['wins'] as num?)?.toInt() ?? 0;
+    final losses = (summary['losses'] as num?)?.toInt() ?? 0;
+    final draws = (summary['draws'] as num?)?.toInt() ?? 0;
+    final winRate = (summary['win_rate'] as num?)?.toDouble() ?? 0;
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.ink,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF182744), Color(0xFF234D3D), Color(0xFF7F2635)],
+        ),
         borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withValues(alpha: .24)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: .16),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          const Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('MY BALLPARK RECORD',
-                  style: TextStyle(
-                      color: AppColors.leaf,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2)),
-              SizedBox(height: 7),
-              Text('내 직관 승률',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 21,
+      child: Stack(children: [
+        const Positioned.fill(
+          child: CustomPaint(
+            painter: _AttendanceStadiumPainter(accent: AppColors.butter),
+          ),
+        ),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Row(children: [
+            _AttendanceBoardLight(color: AppColors.coral),
+            SizedBox(width: 6),
+            _AttendanceBoardLight(color: AppColors.butter),
+            SizedBox(width: 6),
+            _AttendanceBoardLight(color: AppColors.leaf),
+            Spacer(),
+            Text('MY9 BALLPARK',
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2)),
+          ]),
+          const SizedBox(height: 24),
+          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            const Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('내 직관 승률',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900)),
+                    SizedBox(height: 7),
+                    Text('응원석에서 쌓인 경기 기록판',
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w800)),
+                  ]),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .24),
+                borderRadius: BorderRadius.circular(18),
+                border:
+                    Border.all(color: AppColors.butter.withValues(alpha: .4)),
+              ),
+              child: Text('$winRate%',
+                  style: const TextStyle(
+                      color: AppColors.butter,
+                      fontSize: 31,
                       fontWeight: FontWeight.w900)),
-            ]),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          Text(
+            '$qualifiedGames전 $wins승 $losses패 $draws무',
+            style: const TextStyle(color: Colors.white70),
           ),
-          Text('${summary['win_rate']}%',
-              style: const TextStyle(
-                  color: AppColors.butter,
-                  fontSize: 34,
-                  fontWeight: FontWeight.w900)),
-        ]),
-        const SizedBox(height: 8),
-        Text(
-          '$qualifiedGames경기 · ${summary['wins']}승 ${summary['losses']}패 ${summary['draws']}무',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        if (weekdays.isNotEmpty) ...[
+          if (weekdays.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            _RecordBreakdown(title: '요일별 승률', items: weekdays),
+          ],
+          if (stadiums.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _RecordBreakdown(title: '구장별 승률', items: stadiums),
+          ],
+          const SizedBox(height: 12),
+          _OpponentSummary(
+            records: records,
+            expanded: showOpponentRecords,
+            onToggle: onToggleOpponentRecords,
+          ),
+          const SizedBox(height: 20),
+          Divider(color: Colors.white.withValues(alpha: .14), height: 1),
           const SizedBox(height: 18),
-          _RecordBreakdown(title: '요일별 승률', items: weekdays),
-        ],
-        if (stadiums.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _RecordBreakdown(title: '구장별 승률', items: stadiums),
-        ],
-        const SizedBox(height: 12),
-        _OpponentSummary(
-          records: records,
-          expanded: showOpponentRecords,
-          onToggle: onToggleOpponentRecords,
-        ),
-        const SizedBox(height: 20),
-        Divider(color: Colors.white.withValues(alpha: .14), height: 1),
-        const SizedBox(height: 18),
-        const Row(children: [
-          Icon(Icons.shield_rounded, color: AppColors.coral, size: 21),
-          SizedBox(width: 8),
-          Text('내 승리 지킴이',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900)),
+          const Row(children: [
+            Icon(Icons.shield_rounded, color: AppColors.coral, size: 21),
+            SizedBox(width: 8),
+            Text('내 승리 지킴이',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900)),
+          ]),
+          const SizedBox(height: 14),
+          if (hitters.isEmpty && pitchers.isEmpty && decisiveHitLeaders.isEmpty)
+            const Text('응원팀이 지정된 완료 경기부터 선수 기록이 집계됩니다.',
+                style: TextStyle(color: Colors.white60, height: 1.5))
+          else ...[
+            _GuardianSection(
+              title: '타자 TOP 5',
+              items: hitters,
+              decisiveHitLeaders: decisiveHitLeaders,
+            ),
+            const SizedBox(height: 12),
+            _GuardianSection(title: '투수 TOP 5', items: pitchers),
+          ],
         ]),
-        const SizedBox(height: 14),
-        if (hitters.isEmpty && pitchers.isEmpty && decisiveHitLeaders.isEmpty)
-          const Text('응원팀이 지정된 완료 경기부터 선수 기록이 집계됩니다.',
-              style: TextStyle(color: Colors.white60, height: 1.5))
-        else ...[
-          _GuardianSection(
-            title: '타자 TOP 5',
-            items: hitters,
-            decisiveHitLeaders: decisiveHitLeaders,
-          ),
-          const SizedBox(height: 12),
-          _GuardianSection(title: '투수 TOP 5', items: pitchers),
-        ],
       ]),
     );
   }
@@ -370,47 +491,63 @@ class _OpponentSummary extends StatelessWidget {
         ),
       ]),
       const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final row in visible)
-            Container(
-              width: 150,
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .09),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    row.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
+      SizedBox(
+        height: 128,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: visible.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final row = visible[index];
+            return SizedBox(
+              width: 156,
+              child: Container(
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        TeamMascotIcon(teamName: row.name, size: 30),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            row.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 7),
-                  Text(
-                    '${row.rate.toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                      color: AppColors.butter,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                    const Spacer(),
+                    Text(
+                      '${row.rate.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        color: AppColors.butter,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                  Text(
-                    '${row.wins}승 ${row.draws}무 ${row.losses}패',
-                    style: const TextStyle(color: Colors.white54, fontSize: 10),
-                  ),
-                ],
+                    Text(
+                      '${row.wins} W · ${row.draws} D · ${row.losses} L',
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 10),
+                    ),
+                  ],
+                ),
               ),
-            ),
-        ],
+            );
+          },
+        ),
       ),
     ]);
   }
@@ -435,28 +572,83 @@ class _AttendanceListFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: SegmentedButton<String>(
-          segments: [
-            _segment('all', '전체', counts['all'] ?? 0),
-            _segment('win', '승', counts['win'] ?? 0),
-            _segment('draw', '무', counts['draw'] ?? 0),
-            _segment('loss', '패', counts['loss'] ?? 0),
-          ],
-          selected: {selected},
-          onSelectionChanged: (values) => onSelected(values.first),
-        ),
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: .045),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(
+                  value: 'all',
+                  icon: Icon(Icons.stadium_rounded),
+                  label: Text('전체')),
+              ButtonSegment(
+                  value: 'win',
+                  icon: Icon(Icons.check_rounded),
+                  label: Text('승')),
+              ButtonSegment(
+                  value: 'draw',
+                  icon: Icon(Icons.remove_rounded),
+                  label: Text('무')),
+              ButtonSegment(
+                  value: 'loss',
+                  icon: Icon(Icons.close_rounded),
+                  label: Text('패')),
+            ],
+            selected: {selected},
+            onSelectionChanged: (values) => onSelected(values.first),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.ink,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.butter.withValues(alpha: .36),
+                ),
+              ),
+              child: Text(
+                _summaryText(),
+                style: const TextStyle(
+                  color: AppColors.butter,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  ButtonSegment<String> _segment(String value, String label, int count) {
-    return ButtonSegment<String>(
-      value: value,
-      label: Text('$label $count'),
-    );
+  String _summaryText() {
+    final wins = counts['win'] ?? 0;
+    final draws = counts['draw'] ?? 0;
+    final losses = counts['loss'] ?? 0;
+    final total = counts['all'] ?? wins + draws + losses;
+    return switch (selected) {
+      'win' => '$wins승',
+      'draw' => '$draws무',
+      'loss' => '$losses패',
+      _ => '$total전 $wins승 $losses패${draws > 0 ? ' $draws무' : ''}',
+    };
   }
 }
 
@@ -472,8 +664,9 @@ class _GuardianSection extends StatelessWidget {
 
   List<Map<String, dynamic>> _top(String key) {
     if (key == 'decisive_hits') {
-      final values =
-          decisiveHitLeaders.map((item) => item as Map<String, dynamic>).toList();
+      final values = decisiveHitLeaders
+          .map((item) => item as Map<String, dynamic>)
+          .toList();
       values.sort((a, b) =>
           ((b['count'] as num?) ?? 0).compareTo((a['count'] as num?) ?? 0));
       return values.take(5).toList();
@@ -570,46 +763,47 @@ class _GuardianSection extends StatelessWidget {
                         )
                       else
                         Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 13, vertical: 9),
-                        decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: .08),
-                            borderRadius: BorderRadius.circular(18)),
-                        child: Column(children: [
-                          for (final player in _top(tab.$3))
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(children: [
-                                Expanded(
-                                    child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                      Text(player['player_name'] as String,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 13, vertical: 9),
+                          decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: .08),
+                              borderRadius: BorderRadius.circular(18)),
+                          child: Column(children: [
+                            for (final player in _top(tab.$3))
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(children: [
+                                  Expanded(
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                        Text(player['player_name'] as String,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w800)),
+                                        Text(player['team_name'] as String,
+                                            style: const TextStyle(
+                                                color: Colors.white54,
+                                                fontSize: 10)),
+                                      ])),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(_display(player, tab.$3),
                                           style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w800)),
-                                      Text(player['team_name'] as String,
-                                          style: const TextStyle(
-                                              color: Colors.white54,
-                                              fontSize: 10)),
-                                    ])),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    alignment: Alignment.centerRight,
-                                    child: Text(_display(player, tab.$3),
-                                        style: const TextStyle(
-                                            color: AppColors.butter,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w900)),
+                                              color: AppColors.butter,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900)),
+                                    ),
                                   ),
-                                ),
-                              ]),
-                            ),
-                        ]),
-                      ),
+                                ]),
+                              ),
+                          ]),
+                        ),
                     ]),
               ),
           ]),
@@ -626,42 +820,99 @@ class _AttendanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                  color: AppColors.cream,
-                  borderRadius: BorderRadius.circular(12)),
-              child: Text(DateFormat('MM.dd').format(record.gameDate),
-                  style: const TextStyle(fontWeight: FontWeight.w800)),
-            ),
-            const Spacer(),
-            IconButton(
-              tooltip: '기록 삭제',
-              icon: const Icon(Icons.delete_outline_rounded),
-              onPressed: () => onDelete(record.id),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          _TeamMatchup(
-            awayTeamName: record.awayTeamName,
-            homeTeamName: record.homeTeamName,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: .045),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          if (record.memo != null) ...[
-            const SizedBox(height: 14),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              if (record.memo != null)
-                _InfoChip(icon: Icons.notes_rounded, label: record.memo!),
-            ]),
-          ],
-        ]),
+        ],
       ),
+      child: Stack(children: [
+        const Positioned.fill(
+          child: CustomPaint(
+            painter: _AttendanceTicketPainter(),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(18),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                    color: AppColors.ink,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.butter.withValues(alpha: .38),
+                    )),
+                child: Text(DateFormat('MM.dd').format(record.gameDate),
+                    style: const TextStyle(
+                        color: AppColors.butter, fontWeight: FontWeight.w900)),
+              ),
+              const Spacer(),
+              IconButton(
+                tooltip: '기록 삭제',
+                icon: const Icon(Icons.delete_outline_rounded),
+                onPressed: () => onDelete(record.id),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            _TeamMatchup(
+              awayTeamName: record.awayTeamName,
+              homeTeamName: record.homeTeamName,
+            ),
+            if (record.memo != null) ...[
+              const SizedBox(height: 14),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                if (record.memo != null)
+                  _InfoChip(icon: Icons.notes_rounded, label: record.memo!),
+              ]),
+            ],
+          ]),
+        ),
+      ]),
     );
   }
+}
+
+class _AttendanceTicketPainter extends CustomPainter {
+  const _AttendanceTicketPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = AppColors.leaf.withValues(alpha: .22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final path = Path()
+      ..moveTo(size.width * .5, size.height * .38)
+      ..lineTo(size.width * .64, size.height * .52)
+      ..lineTo(size.width * .5, size.height * .68)
+      ..lineTo(size.width * .36, size.height * .52)
+      ..close();
+    canvas.drawPath(path, line);
+    canvas.drawLine(
+      Offset(size.width * .5, size.height * .68),
+      Offset(size.width * .22, size.height),
+      line,
+    );
+    canvas.drawLine(
+      Offset(size.width * .5, size.height * .68),
+      Offset(size.width * .78, size.height),
+      line,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _AttendanceTicketPainter oldDelegate) => false;
 }
 
 class _AttendanceReveal extends StatelessWidget {

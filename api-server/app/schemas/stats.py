@@ -1,6 +1,35 @@
 from pydantic import BaseModel
 
 
+class RecentBattingGameRead(BaseModel):
+    game_id: int
+    game_date: str
+    opponent_name: str
+    ab: int
+    h: int
+    hr: int
+    rbi: int
+    r: int
+    bb: int
+    so: int
+    sb: int
+    avg_after_game: float | None = None
+
+
+class RecentPitchingGameRead(BaseModel):
+    game_id: int
+    game_date: str
+    opponent_name: str
+    innings_pitched: float
+    earned_runs: int
+    runs: int
+    hits: int
+    walks: int
+    strikeouts: int
+    decision: str | None = None
+    era_after_game: float | None = None
+
+
 class SeasonBattingPlayerRead(BaseModel):
     player_id: int
     player_name: str
@@ -32,6 +61,7 @@ class SeasonBattingPlayerRead(BaseModel):
     batting_wpa: float = 0
     pitching_wpa: float = 0
     total_wpa: float = 0
+    recent_games: list[RecentBattingGameRead] = []
 
 
 class SeasonBattingRead(BaseModel):
@@ -68,6 +98,7 @@ class SeasonPitchingPlayerRead(BaseModel):
     batting_wpa: float = 0
     pitching_wpa: float = 0
     total_wpa: float = 0
+    recent_games: list[RecentPitchingGameRead] = []
 
 
 class SeasonPitchingRead(BaseModel):

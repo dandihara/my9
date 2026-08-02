@@ -120,6 +120,7 @@ class _WeatherPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
+    _paintBallparkBase(canvas, size);
     switch (condition) {
       case 'rain':
         _paintRain(canvas, size);
@@ -149,6 +150,68 @@ class _WeatherPainter extends CustomPainter {
         _paintSun(canvas, size);
         return;
     }
+  }
+
+  void _paintBallparkBase(Canvas canvas, Size size) {
+    final standPaint = Paint()
+      ..color = const Color(0xFF17223B).withValues(alpha: .08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    for (var i = 0; i < 7; i++) {
+      final rect = Rect.fromLTWH(
+        -size.width * (.28 + i * .03),
+        size.height * (.16 + i * .028),
+        size.width * (1.56 + i * .06),
+        size.height * (.52 + i * .025),
+      );
+      canvas.drawArc(rect, 3.34, -.64, false, standPaint);
+    }
+
+    final lightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: .42)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
+    for (final light in [
+      Offset(size.width * .12, size.height * .18),
+      Offset(size.width * .88, size.height * .2),
+    ]) {
+      canvas.drawCircle(light, 42, lightPaint);
+      canvas.drawLine(
+        light,
+        Offset(size.width * .5, size.height * .52),
+        Paint()
+          ..color = Colors.white.withValues(alpha: .08)
+          ..strokeWidth = 34
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
+    final fieldTop = size.height * .72;
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, size.height)
+        ..lineTo(size.width * .38, fieldTop)
+        ..lineTo(size.width * .62, fieldTop)
+        ..lineTo(size.width, size.height)
+        ..close(),
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x55BCE8D1), Color(0x66C79B65)],
+        ).createShader(
+            Rect.fromLTWH(0, fieldTop, size.width, size.height - fieldTop)),
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(size.width * .5, fieldTop + 18)
+        ..lineTo(size.width * .12, size.height)
+        ..moveTo(size.width * .5, fieldTop + 18)
+        ..lineTo(size.width * .88, size.height),
+      Paint()
+        ..color = Colors.white.withValues(alpha: .24)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
   }
 
   void _paintSun(Canvas canvas, Size size) {

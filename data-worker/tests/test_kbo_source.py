@@ -8,6 +8,7 @@ from worker.sources.kbo_source import (
     parse_game_events_html,
     parse_schedule_html,
 )
+from worker.jobs.sync_boxscore import _normalize_event_scores
 
 
 HTML = """
@@ -139,6 +140,79 @@ class ParseGameEventsHtmlTest(unittest.TestCase):
         self.assertEqual(events[0]["inning_half"], "top")
         self.assertEqual(events[0]["event_type"], "hit")
         self.assertEqual(events[0]["base_state_after"], "100")
+
+
+class NormalizeEventScoresTest(unittest.TestCase):
+    def test_calculates_home_perspective_score_diff_from_runs(self) -> None:
+        events = [
+            {
+                "sequence_no": 1,
+                "inning_half": "top",
+                "batting_team_id": 10,
+                "runs_scored": 2,
+                "score_diff_before": 0,
+                "score_diff_after": 0,
+            },
+            {
+                "sequence_no": 2,
+                "inning_half": "top",
+                "batting_team_id": 10,
+                "runs_scored": 0,
+                "score_diff_before": 0,
+                "score_diff_after": 0,
+            },
+            {
+                "sequence_no": 3,
+                "inning_half": "bottom",
+                "batting_team_id": 20,
+                "runs_scored": 3,
+                "score_diff_before": 0,
+                "score_diff_after": 0,
+            },
+        ]
+
+        normalized = _normalize_event_scores(events, away_team_id=10, home_team_id=20)
+
+        self.assertEqual(normalized[0]["score_diff_before"], 0)
+        self.assertEqual(normalized[0]["score_diff_after"], -2)
+        self.assertEqual(normalized[1]["score_diff_before"], -2)
+        self.assertEqual(normalized[1]["score_diff_after"], -2)
+        self.assertEqual(normalized[2]["score_diff_before"], -2)
+        self.assertEqual(normalized[2]["score_diff_after"], 1)
+
+    def test_keeps_valid_parsed_score_diff(self) -> None:
+        events = [
+            {
+                "sequence_no": 1,
+                "inning_half": "top",
+                "batting_team_id": 10,
+                "runs_scored": 1,
+                "score_diff_before": 0,
+                "score_diff_after": -1,
+            },
+        ]
+
+        normalized = _normalize_event_scores(events, away_team_id=10, home_team_id=20)
+
+        self.assertEqual(normalized[0]["score_diff_before"], 0)
+        self.assertEqual(normalized[0]["score_diff_after"], -1)
+
+    def test_infers_runs_from_valid_parsed_score_diff(self) -> None:
+        events = [
+            {
+                "sequence_no": 1,
+                "inning_half": "bottom",
+                "batting_team_id": 20,
+                "runs_scored": 0,
+                "score_diff_before": 0,
+                "score_diff_after": 2,
+            },
+        ]
+
+        normalized = _normalize_event_scores(events, away_team_id=10, home_team_id=20)
+
+        self.assertEqual(normalized[0]["runs_scored"], 2)
+        self.assertEqual(normalized[0]["score_diff_after"], 2)
 
 
 if __name__ == "__main__":
