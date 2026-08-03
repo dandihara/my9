@@ -79,6 +79,10 @@ class SeasonPitchingPlayerRead(BaseModel):
     team_id: int
     team_name: str
     games: int
+    wins: int = 0
+    losses: int = 0
+    holds: int = 0
+    saves: int = 0
     innings_pitched: float
     hits: int
     home_runs: int

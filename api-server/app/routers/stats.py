@@ -30,6 +30,48 @@ def _float(value) -> float:
     return float(value or 0)
 
 
+def _pitching_decision_field(decision: str | None) -> str | None:
+    normalized = (decision or "").strip()
+    if not normalized:
+        return None
+    if "홀" in normalized:
+        return "holds"
+    if "세" in normalized:
+        return "saves"
+    if "패" in normalized:
+        return "losses"
+    if "승" in normalized:
+        return "wins"
+    return None
+
+
+async def _season_pitching_decisions(
+    db: AsyncSession, season_year: int
+) -> dict[tuple[int, int], dict[str, int]]:
+    rows = (
+        await db.execute(
+            select(
+                PitchingGameStat.player_id,
+                PitchingGameStat.team_id,
+                PitchingGameStat.decision,
+            )
+            .join(Game, Game.id == PitchingGameStat.game_id)
+            .where(Game.season_year == season_year)
+        )
+    ).all()
+    totals: dict[tuple[int, int], dict[str, int]] = {}
+    for player_id, team_id, decision in rows:
+        field = _pitching_decision_field(decision)
+        if field is None:
+            continue
+        player_totals = totals.setdefault(
+            (player_id, team_id),
+            {"wins": 0, "losses": 0, "holds": 0, "saves": 0},
+        )
+        player_totals[field] += 1
+    return totals
+
+
 async def _as_of_date(db: AsyncSession, season_year: int) -> str | None:
     return await db.scalar(
         select(SyncJob.target_date)
@@ -235,9 +277,13 @@ async def season_pitching(
         )
     ).all()
     recent_games = await _recent_pitching_games(db, season_year)
+    decision_totals = await _season_pitching_decisions(db, season_year)
     players = []
     for metric, player_name, team_name, wpa in rows:
         key = (metric.player_id, metric.team_id)
+        decisions = decision_totals.get(
+            key, {"wins": 0, "losses": 0, "holds": 0, "saves": 0}
+        )
         players.append(
             SeasonPitchingPlayerRead(
                 player_id=metric.player_id,
@@ -245,6 +291,10 @@ async def season_pitching(
                 team_id=metric.team_id,
                 team_name=team_name,
                 games=metric.games,
+                wins=decisions["wins"],
+                losses=decisions["losses"],
+                holds=decisions["holds"],
+                saves=decisions["saves"],
                 innings_pitched=_float(metric.innings_pitched),
                 hits=metric.hits,
                 home_runs=metric.home_runs,
@@ -273,6 +323,7 @@ async def season_pitching(
         season_year=season_year,
         as_of_date=await _as_of_date(db, season_year),
         methodology=(
+            "시즌 경기 기록의 승·패·홀드·세이브와 "
             "시즌 집계 테이블의 ERA·WHIP·K/9·BB/9·K/BB·FIP·K-BB%입니다. "
             "TOP 5 규정이닝 필터는 팀 경기 수와 같은 이닝 수를 사용합니다. "
             "현재 시즌은 자정 동기화 후 재계산되고 과거 시즌은 고정됩니다."

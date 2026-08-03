@@ -36,6 +36,10 @@ class _StatsPageState extends State<StatsPage> {
       (true, 'fip') => 'fip',
       (true, 'whip') => 'whip',
       (true, 'strikeouts') => 'strikeouts',
+      (true, 'wins') => 'wins',
+      (true, 'losses') => 'losses',
+      (true, 'holds') => 'holds',
+      (true, 'saves') => 'saves',
       (true, 'k_bb') => 'k_bb',
       (true, 'k_bb_percent') => 'k_bb_percent',
       (true, 'bb_per_nine') => 'bb_per_nine',
@@ -49,6 +53,9 @@ class _StatsPageState extends State<StatsPage> {
           'strikeouts',
           'k_bb',
           'k_bb_percent',
+          'wins',
+          'holds',
+          'saves',
           'wpa',
         }.contains(_sortKey);
     players.sort((left, right) {
@@ -106,6 +113,10 @@ class _StatsPageState extends State<StatsPage> {
               title: '',
               icon: Icons.sports_baseball_rounded,
               stats: {
+                '승': '${player['wins'] ?? 0}',
+                '패': '${player['losses'] ?? 0}',
+                '홀드': '${player['holds'] ?? 0}',
+                '세이브': '${player['saves'] ?? 0}',
                 '이닝': '${player['innings_pitched']}',
                 '자책': '${player['earned_runs']}',
                 '삼진': '${player['strikeouts']}',
@@ -282,20 +293,6 @@ class _StatsPageState extends State<StatsPage> {
               : filtered
                   .where((player) => player['is_qualified'] != true)
                   .toList();
-          final topPlayers = filtered.where((player) {
-            if (_applyQualificationToTopFive) {
-              return player['is_qualified'] == true;
-            }
-            final sample =
-                ((player[_pitching ? 'innings_pitched' : 'pa'] as num?) ?? 0)
-                    .toDouble();
-            final official = ((player[_pitching
-                        ? 'qualification_innings'
-                        : 'qualification_pa'] as num?) ??
-                    0)
-                .toDouble();
-            return sample > 0 && (official <= 0 || sample >= official * .5);
-          }).toList();
           final methodology = source['methodology'] as String;
 
           return RefreshIndicator(
@@ -355,13 +352,13 @@ class _StatsPageState extends State<StatsPage> {
                     dense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                     title: Text(
-                      'TOP 5 · ${_pitching ? '규정이닝' : '규정타석'} '
+                      'TOP 5 · 비율 지표 ${_pitching ? '규정이닝' : '규정타석'} '
                       '${_applyQualificationToTopFive ? '적용' : '미적용'}',
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                     subtitle: Text(
                       _applyQualificationToTopFive
-                          ? 'KBO 공식 기준 · 타자 3.1타석/경기, 투수 1이닝/경기'
+                          ? '비율 지표에 KBO 공식 기준 적용 · 누계 지표는 전체 선수'
                           : '표본 확대 · 공식 기준의 50% 이상만 포함',
                       style: const TextStyle(
                         color: AppColors.muted,
@@ -372,8 +369,9 @@ class _StatsPageState extends State<StatsPage> {
                 ),
                 const SizedBox(height: 10),
                 _TopRecordStrip(
-                  players: topPlayers,
+                  players: filtered,
                   pitching: _pitching,
+                  applyQualification: _applyQualificationToTopFive,
                   onPlayerTap: (player) => _showPlayer(
                     player,
                     methodology,
@@ -486,6 +484,10 @@ class _PlayerFilters extends StatelessWidget {
                         ('primary', 'ERA 낮은 순'),
                         ('fip', 'FIP 낮은 순'),
                         ('whip', 'WHIP 낮은 순'),
+                        ('wins', '승 많은 순'),
+                        ('losses', '패 적은 순'),
+                        ('holds', '홀드 많은 순'),
+                        ('saves', '세이브 많은 순'),
                         ('strikeouts', '탈삼진 높은 순'),
                         ('k_bb', 'K/BB 높은 순'),
                         ('k_bb_percent', 'K-BB% 높은 순'),
@@ -668,6 +670,10 @@ class _PlayerCard extends StatelessWidget {
       (true, 'fip') => ('FIP', player['fip']),
       (true, 'whip') => ('WHIP', player['whip']),
       (true, 'strikeouts') => ('탈삼진', player['strikeouts']),
+      (true, 'wins') => ('승', player['wins'] ?? 0),
+      (true, 'losses') => ('패', player['losses'] ?? 0),
+      (true, 'holds') => ('홀드', player['holds'] ?? 0),
+      (true, 'saves') => ('세이브', player['saves'] ?? 0),
       (true, 'k_bb') => ('K/BB', player['k_bb']),
       (true, 'k_bb_percent') => ('K-BB%', '${player['k_bb_percent']}%'),
       (true, 'bb_per_nine') => ('BB/9', player['bb_per_nine']),
@@ -700,73 +706,124 @@ class _PlayerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-          child: Row(children: [
-            Container(
-              width: 62,
-              height: 62,
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(19),
-                border: Border.all(color: brand.primary.withValues(alpha: .18)),
+          child: Column(children: [
+            Row(children: [
+              Container(
+                width: 62,
+                height: 62,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(19),
+                  border:
+                      Border.all(color: brand.primary.withValues(alpha: .18)),
+                ),
+                child: TeamPlayerAvatar(
+                  teamName: player['team_name'] as String,
+                  size: 52,
+                ),
               ),
-              child: TeamPlayerAvatar(
-                teamName: player['team_name'] as String,
-                size: 52,
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(player['player_name'] as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 5),
+                      _PlayerMetaPill(text: player['team_name'] as String),
+                    ]),
               ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(player['player_name'] as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 8),
+              Container(
+                width: 86,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                decoration: BoxDecoration(
+                  color: AppColors.ink,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: brand.primary.withValues(alpha: .55),
+                    width: 1.3,
+                  ),
+                ),
+                child: Column(children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('$value',
                         style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 17,
+                            fontSize: 22,
                             fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 5),
-                    _PlayerMetaPill(text: player['team_name'] as String),
-                  ]),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              width: 86,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-              decoration: BoxDecoration(
-                color: AppColors.ink,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: brand.primary.withValues(alpha: .55),
-                  width: 1.3,
-                ),
-              ),
-              child: Column(children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text('$value',
+                  ),
+                  const SizedBox(height: 2),
+                  Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900)),
-                ),
-                const SizedBox(height: 2),
-                Text(label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800)),
-              ]),
-            ),
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800)),
+                ]),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+            ]),
+            if (pitching) ...[
+              const SizedBox(height: 10),
+              _PitchingDecisionStrip(player: player),
+            ],
           ]),
         ),
       ),
+    );
+  }
+}
+
+class _PitchingDecisionStrip extends StatelessWidget {
+  const _PitchingDecisionStrip({required this.player});
+
+  final Map<String, dynamic> player;
+
+  @override
+  Widget build(BuildContext context) {
+    final decisions = [
+      ('승', player['wins'] ?? 0),
+      ('패', player['losses'] ?? 0),
+      ('홀드', player['holds'] ?? 0),
+      ('세이브', player['saves'] ?? 0),
+    ];
+    return Row(
+      children: decisions
+          .map(
+            (decision) => Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${decision.$1} ${decision.$2}',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -802,22 +859,29 @@ class _TopRecordStrip extends StatelessWidget {
   const _TopRecordStrip({
     required this.players,
     required this.pitching,
+    required this.applyQualification,
     required this.onPlayerTap,
   });
 
   final List<Map<String, dynamic>> players;
   final bool pitching;
+  final bool applyQualification;
   final ValueChanged<Map<String, dynamic>> onPlayerTap;
 
   List<_LeaderSpec> get _specs => pitching
       ? const [
-          _LeaderSpec('ERA', 'era', ascending: true),
-          _LeaderSpec('WHIP', 'whip', ascending: true),
+          _LeaderSpec('ERA', 'era', ascending: true, usesQualification: true),
+          _LeaderSpec('WHIP', 'whip', ascending: true, usesQualification: true),
+          _LeaderSpec('승', 'wins'),
+          _LeaderSpec('패', 'losses'),
+          _LeaderSpec('홀드', 'holds'),
+          _LeaderSpec('세이브', 'saves'),
           _LeaderSpec('탈삼진', 'strikeouts'),
-          _LeaderSpec('K-BB%', 'k_bb_percent', suffix: '%'),
+          _LeaderSpec('K-BB%', 'k_bb_percent',
+              suffix: '%', usesQualification: true),
         ]
       : const [
-          _LeaderSpec('OPS', 'ops'),
+          _LeaderSpec('OPS', 'ops', usesQualification: true),
           _LeaderSpec('홈런', 'hr'),
           _LeaderSpec('타점', 'rbi'),
           _LeaderSpec('WPA', 'total_wpa'),
@@ -836,11 +900,21 @@ class _TopRecordStrip extends StatelessWidget {
           separatorBuilder: (_, __) => const SizedBox(width: 10),
           itemBuilder: (context, index) {
             final spec = _specs[index];
-            final source = spec.ascending
-                ? players
-                    .where((player) => ((player[spec.field] as num?) ?? 0) > 0)
-                    .toList()
-                : players.toList();
+            final source = players.where((player) {
+              final value = ((player[spec.field] as num?) ?? 0).toDouble();
+              if (value <= 0) return false;
+              if (!spec.usesQualification) return true;
+              if (applyQualification) return player['is_qualified'] == true;
+              final sample =
+                  ((player[pitching ? 'innings_pitched' : 'pa'] as num?) ?? 0)
+                      .toDouble();
+              final official = ((player[pitching
+                          ? 'qualification_innings'
+                          : 'qualification_pa'] as num?) ??
+                      0)
+                  .toDouble();
+              return sample > 0 && (official <= 0 || sample >= official * .5);
+            }).toList();
             source.sort((left, right) {
               final a = (left[spec.field] as num?) ?? 0;
               final b = (right[spec.field] as num?) ?? 0;
@@ -988,12 +1062,14 @@ class _LeaderSpec {
     this.field, {
     this.ascending = false,
     this.suffix = '',
+    this.usesQualification = false,
   });
 
   final String label;
   final String field;
   final bool ascending;
   final String suffix;
+  final bool usesQualification;
 }
 
 class _BoardLight extends StatelessWidget {

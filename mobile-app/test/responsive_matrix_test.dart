@@ -117,12 +117,29 @@ void main() {
     await tester.tap(find.text('투수'));
     await tester.pump(const Duration(milliseconds: 900));
 
-    expect(find.text('TOP 5 · 규정이닝 적용'), findsOneWidget);
+    expect(find.text('TOP 5 · 비율 지표 규정이닝 적용'), findsOneWidget);
     expect(find.textContaining('규정이닝 미달 선수'), findsNothing);
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
-    expect(find.text('TOP 5 · 규정이닝 미적용'), findsOneWidget);
+    expect(find.text('TOP 5 · 비율 지표 규정이닝 미적용'), findsOneWidget);
     expect(find.text('테스트 선수'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pitcher cards expose wins losses holds and saves',
+      (tester) async {
+    await setViewport(tester, const Size(390, 844), 1);
+    await tester.pumpWidget(app(const StatsPage()));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.tap(find.text('투수'));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.drag(find.byType(ListView).first, const Offset(0, -700));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('승 8'), findsWidgets);
+    expect(find.text('패 2'), findsWidgets);
+    expect(find.text('홀드 12'), findsWidgets);
+    expect(find.text('세이브 9'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -261,6 +278,10 @@ Map<String, dynamic> _statsPayload({required bool pitching}) {
           ...common,
           'era': 2.31 + index * .1,
           'whip': 1.05 + index * .02,
+          'wins': 8 - index,
+          'losses': 2 + index,
+          'holds': 12 - index,
+          'saves': 9 - index,
           'strikeouts': 88 - index,
           'fip': 2.75 + index * .1,
           'k_bb': 4.2 - index * .1,

@@ -163,7 +163,13 @@ class _StadiumBackdropPainter extends CustomPainter {
     canvas.drawRect(rect, Paint()..shader = gradient);
 
     final fieldTop = size.height * .46;
-    final home = Offset(size.width / 2, size.height * .98);
+    final infieldCenter = Offset(size.width / 2, size.height * .73);
+    final infieldRadius = math.min(size.width * .31, 150.0);
+    final baseDistance = infieldRadius * .64;
+    // Keep home plate and both foul lines attached to the same infield
+    // diamond. Using the bottom of a tall screen as home plate stretched the
+    // diamond and made the foul lines look detached on modern phones.
+    final home = Offset(infieldCenter.dx, infieldCenter.dy + baseDistance);
     final leftFoul = Offset(-size.width * .08, fieldTop);
     final rightFoul = Offset(size.width * 1.08, fieldTop);
     final outfield = Path()
@@ -184,14 +190,11 @@ class _StadiumBackdropPainter extends CustomPainter {
     canvas.drawLine(home, leftFoul, foulPaint);
     canvas.drawLine(home, rightFoul, foulPaint);
 
-    final infieldCenter = Offset(size.width / 2, size.height * .73);
-    final infieldRadius = math.min(size.width * .31, 150.0);
     canvas.drawCircle(
       infieldCenter,
       infieldRadius,
       Paint()..color = const Color(0xFFD7B57A).withValues(alpha: .12),
     );
-    final baseDistance = infieldRadius * .64;
     final bases = [
       Offset(infieldCenter.dx, infieldCenter.dy - baseDistance),
       Offset(infieldCenter.dx + baseDistance, infieldCenter.dy),
