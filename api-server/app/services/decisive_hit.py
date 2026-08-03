@@ -35,3 +35,31 @@ def find_decisive_event(
         ):
             return event
     return None
+
+
+def find_favorite_team_decisive_event(
+    events: Sequence[EventT],
+    *,
+    favorite_team_id: int | None,
+    home_team_id: int,
+    away_team_id: int,
+    home_score: int | None,
+    away_score: int | None,
+) -> EventT | None:
+    """Return a decisive hit only when the user's favorite team won the game."""
+    if (
+        favorite_team_id is None
+        or favorite_team_id not in (home_team_id, away_team_id)
+        or home_score is None
+        or away_score is None
+        or home_score == away_score
+    ):
+        return None
+    winning_team_id = home_team_id if home_score > away_score else away_team_id
+    if winning_team_id != favorite_team_id:
+        return None
+    return find_decisive_event(
+        events,
+        winning_team_id=favorite_team_id,
+        winner_sign=1 if favorite_team_id == home_team_id else -1,
+    )

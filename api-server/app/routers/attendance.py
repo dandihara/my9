@@ -22,7 +22,7 @@ from app.schemas.attendance import (
     AttendanceUpdate,
     AttendanceBattingLeader,
 )
-from app.services.decisive_hit import find_decisive_event
+from app.services.decisive_hit import find_favorite_team_decisive_event
 
 
 router = APIRouter()
@@ -163,32 +163,14 @@ async def attendance_summary(
             )
 
         for game_id, game in attended_games.items():
-            if (
-                game.home_score is None
-                or game.away_score is None
-                or game.home_score == game.away_score
-            ):
-                decisive_hits.append(
-                    {
-                        "game_id": game_id,
-                        "game_date": game.game_date,
-                        "player_id": None,
-                        "player_name": None,
-                        "team_name": None,
-                    }
-                )
-                continue
-            winning_team_id = (
-                game.home_team_id
-                if game.home_score > game.away_score
-                else game.away_team_id
-            )
-            winner_sign = 1 if winning_team_id == game.home_team_id else -1
             events = events_by_game.get(game_id, [])
-            decisive_event = find_decisive_event(
+            decisive_event = find_favorite_team_decisive_event(
                 [event for event, _, _ in events],
-                winning_team_id=winning_team_id,
-                winner_sign=winner_sign,
+                favorite_team_id=user.my_team_id,
+                home_team_id=game.home_team_id,
+                away_team_id=game.away_team_id,
+                home_score=game.home_score,
+                away_score=game.away_score,
             )
             if decisive_event is not None:
                 _, player_name, team_name = next(
@@ -201,16 +183,6 @@ async def attendance_summary(
                         "player_id": decisive_event.batter_id,
                         "player_name": player_name,
                         "team_name": team_name,
-                    }
-                )
-            else:
-                decisive_hits.append(
-                    {
-                        "game_id": game_id,
-                        "game_date": game.game_date,
-                        "player_id": None,
-                        "player_name": None,
-                        "team_name": None,
                     }
                 )
 

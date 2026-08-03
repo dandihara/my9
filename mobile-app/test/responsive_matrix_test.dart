@@ -6,7 +6,9 @@ import 'package:seungyo_mobile_app/core/network/api_client.dart';
 import 'package:seungyo_mobile_app/core/theme/app_theme.dart';
 import 'package:seungyo_mobile_app/features/auth/login_page.dart';
 import 'package:seungyo_mobile_app/features/auth/signup_page.dart';
+import 'package:seungyo_mobile_app/features/attendance/attendance_page.dart';
 import 'package:seungyo_mobile_app/features/stats/stats_page.dart';
+import 'package:seungyo_mobile_app/features/team/standings_page.dart';
 import 'package:seungyo_mobile_app/shared/widgets/stadium_shell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,10 +39,10 @@ void main() {
     ApiClient.instance.dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) => handler.resolve(
-          Response<Map<String, dynamic>>(
+          Response<dynamic>(
             requestOptions: options,
             statusCode: 200,
-            data: _statsPayload(pitching: options.path.contains('pitching')),
+            data: _apiPayload(options.path),
           ),
         ),
       ),
@@ -76,6 +78,8 @@ void main() {
             LoginPage(),
             SignupPage(),
             StatsPage(),
+            StandingsPage(),
+            AttendancePage(),
           ]) {
             await tester.pumpWidget(app(page));
             await tester.pump(const Duration(milliseconds: 900));
@@ -121,7 +125,103 @@ void main() {
     expect(find.text('테스트 선수'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
+
+  for (final viewport in const [
+    Size(320, 568),
+    Size(390, 844),
+    Size(600, 960),
+    Size(844, 390),
+  ]) {
+    testWidgets(
+        'ballpark team detail fits ${viewport.width}x${viewport.height}',
+        (tester) async {
+      await setViewport(tester, viewport, 1.3);
+      await tester.pumpWidget(app(const StandingsPage()));
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.tap(find.text('두산 베어스').first);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.text('승부 요약'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
+
+dynamic _apiPayload(String path) {
+  if (path == '/v1/teams/standings') return _standingsPayload();
+  if (path == '/v1/attendances') return _attendancePayload();
+  if (path == '/v1/attendances/summary') return _attendanceSummaryPayload();
+  return _statsPayload(pitching: path.contains('pitching'));
+}
+
+Map<String, dynamic> _standingsPayload() => {
+      'season_year': 2026,
+      'as_of_date': '2026-08-03',
+      'standings': [
+        {
+          'rank': 1,
+          'team_name': '두산 베어스',
+          'games': 97,
+          'wins': 59,
+          'losses': 36,
+          'draws': 2,
+          'win_rate': 62.1,
+          'recent_10_wins': 8,
+          'recent_10_draws': 1,
+          'recent_10_losses': 1,
+          'run_difference': 83,
+          'team_batting_average': .283,
+          'team_home_runs': 75,
+          'team_hits': 957,
+          'team_on_base_percentage': .366,
+          'team_slugging_percentage': .405,
+          'team_ops': .771,
+          'team_era': 3.21,
+          'team_whip': 1.18,
+          'team_strikeouts': 741,
+          'runs_scored': 498,
+          'runs_allowed': 415,
+        }
+      ],
+    };
+
+List<Map<String, dynamic>> _attendancePayload() => [
+      {
+        'id': 1,
+        'game_id': 10,
+        'game_date': '2026-08-02',
+        'away_team_id': 2,
+        'away_team_name': 'LG 트윈스',
+        'home_team_id': 1,
+        'home_team_name': '두산 베어스',
+        'my_team_id': 1,
+        'result_for_my_team': 'win',
+        'seat_section': '1루 내야석',
+        'memo': '응원팀 승리',
+      }
+    ];
+
+Map<String, dynamic> _attendanceSummaryPayload() => {
+      'qualified_games': 1,
+      'wins': 1,
+      'losses': 0,
+      'draws': 0,
+      'win_rate': 100.0,
+      'weekday_records': [
+        {'label': '일', 'wins': 1, 'draws': 0, 'losses': 0, 'win_rate': 100.0}
+      ],
+      'stadium_records': [
+        {
+          'label': '잠실야구장',
+          'wins': 1,
+          'draws': 0,
+          'losses': 0,
+          'win_rate': 100.0
+        }
+      ],
+      'top_batting_players': <dynamic>[],
+      'top_pitchers': <dynamic>[],
+      'decisive_hit_leaders': <dynamic>[],
+    };
 
 Map<String, dynamic> _statsPayload({required bool pitching}) {
   final common = <String, dynamic>{

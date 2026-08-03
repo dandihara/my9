@@ -1,7 +1,7 @@
 name: seungyo_mobile_app
 description: MY9 baseball attendance and player analytics app
 publish_to: "none"
-version: 1.0.4+6
+version: 1.0.5+7
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -34,6 +34,8 @@ flutter:
     - assets/app_icon_doosan.png
     - assets/login_hero.png
     - assets/player_ball_face.png
+    - assets/stadium_outfield_backdrop.png
+    - assets/baseball_gear_cluster.png
     - assets/mascot_schedule.png
     - assets/mascot_attendance.png
     - assets/mascot_live.png

@@ -165,55 +165,6 @@ class _AttendanceBoardLight extends StatelessWidget {
   }
 }
 
-class _AttendanceStadiumPainter extends CustomPainter {
-  const _AttendanceStadiumPainter({required this.accent});
-
-  final Color accent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final line = Paint()
-      ..color = Colors.white.withValues(alpha: .08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    final glow = Paint()
-      ..color = accent.withValues(alpha: .12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2;
-    canvas.drawArc(
-      Rect.fromCircle(
-        center: Offset(size.width * .84, size.height * .06),
-        radius: size.width * .34,
-      ),
-      .2,
-      2.35,
-      false,
-      glow,
-    );
-    final base = Path()
-      ..moveTo(size.width * .5, size.height * .5)
-      ..lineTo(size.width * .64, size.height * .66)
-      ..lineTo(size.width * .5, size.height * .84)
-      ..lineTo(size.width * .36, size.height * .66)
-      ..close();
-    canvas.drawPath(base, line);
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .84),
-      Offset(size.width * .12, size.height),
-      line,
-    );
-    canvas.drawLine(
-      Offset(size.width * .5, size.height * .84),
-      Offset(size.width * .88, size.height),
-      line,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _AttendanceStadiumPainter oldDelegate) =>
-      oldDelegate.accent != accent;
-}
-
 class _AttendanceInsightCard extends StatelessWidget {
   const _AttendanceInsightCard({
     required this.summary,
@@ -242,13 +193,9 @@ class _AttendanceInsightCard extends StatelessWidget {
     final draws = (summary['draws'] as num?)?.toInt() ?? 0;
     final winRate = (summary['win_rate'] as num?)?.toDouble() ?? 0;
     return Container(
-      padding: const EdgeInsets.all(22),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF182744), Color(0xFF234D3D), Color(0xFF7F2635)],
-        ),
+        color: const Color(0xFF0F1D27),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: Colors.white.withValues(alpha: .24)),
         boxShadow: [
@@ -260,104 +207,154 @@ class _AttendanceInsightCard extends StatelessWidget {
         ],
       ),
       child: Stack(children: [
-        const Positioned.fill(
-          child: CustomPaint(
-            painter: _AttendanceStadiumPainter(accent: AppColors.butter),
+        Positioned.fill(
+          child: Image.asset(
+            'assets/stadium_outfield_backdrop.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
           ),
         ),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Row(children: [
-            _AttendanceBoardLight(color: AppColors.coral),
-            SizedBox(width: 6),
-            _AttendanceBoardLight(color: AppColors.butter),
-            SizedBox(width: 6),
-            _AttendanceBoardLight(color: AppColors.leaf),
-            Spacer(),
-            Text('MY9 BALLPARK',
-                style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2)),
-          ]),
-          const SizedBox(height: 24),
-          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            const Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('내 직관 승률',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900)),
-                    SizedBox(height: 7),
-                    Text('응원석에서 쌓인 경기 기록판',
-                        style: TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w800)),
-                  ]),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: .24),
-                borderRadius: BorderRadius.circular(18),
-                border:
-                    Border.all(color: AppColors.butter.withValues(alpha: .4)),
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xB8172940),
+                  Color(0xE3183E34),
+                  Color(0xF2762635),
+                ],
+                stops: [0, .48, 1],
               ),
-              child: Text('$winRate%',
-                  style: const TextStyle(
-                      color: AppColors.butter,
-                      fontSize: 31,
-                      fontWeight: FontWeight.w900)),
             ),
-          ]),
-          const SizedBox(height: 10),
-          Text(
-            '$qualifiedGames전 $wins승 $losses패 $draws무',
-            style: const TextStyle(color: Colors.white70),
           ),
-          if (weekdays.isNotEmpty) ...[
+        ),
+        Padding(
+          padding: const EdgeInsets.all(22),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Row(children: [
+              _AttendanceBoardLight(color: AppColors.coral),
+              SizedBox(width: 6),
+              _AttendanceBoardLight(color: AppColors.butter),
+              SizedBox(width: 6),
+              _AttendanceBoardLight(color: AppColors.leaf),
+              Spacer(),
+              Text('MY9 BALLPARK',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2)),
+            ]),
+            const SizedBox(height: 24),
+            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              const Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('내 직관 승률',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900)),
+                      SizedBox(height: 7),
+                      Text('응원석에서 쌓인 경기 기록판',
+                          style: TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w800)),
+                    ]),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .24),
+                  borderRadius: BorderRadius.circular(18),
+                  border:
+                      Border.all(color: AppColors.butter.withValues(alpha: .4)),
+                ),
+                child: Text('$winRate%',
+                    style: const TextStyle(
+                        color: AppColors.butter,
+                        fontSize: 31,
+                        fontWeight: FontWeight.w900)),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            Text(
+              '$qualifiedGames전 $wins승 $losses패 $draws무',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            if (weekdays.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              _RecordBreakdown(title: '요일별 승률', items: weekdays),
+            ],
+            if (stadiums.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _RecordBreakdown(title: '구장별 승률', items: stadiums),
+            ],
+            const SizedBox(height: 12),
+            _OpponentSummary(
+              records: records,
+              expanded: showOpponentRecords,
+              onToggle: onToggleOpponentRecords,
+            ),
+            const SizedBox(height: 20),
+            Divider(color: Colors.white.withValues(alpha: .14), height: 1),
             const SizedBox(height: 18),
-            _RecordBreakdown(title: '요일별 승률', items: weekdays),
-          ],
-          if (stadiums.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _RecordBreakdown(title: '구장별 승률', items: stadiums),
-          ],
-          const SizedBox(height: 12),
-          _OpponentSummary(
-            records: records,
-            expanded: showOpponentRecords,
-            onToggle: onToggleOpponentRecords,
-          ),
-          const SizedBox(height: 20),
-          Divider(color: Colors.white.withValues(alpha: .14), height: 1),
-          const SizedBox(height: 18),
-          const Row(children: [
-            Icon(Icons.shield_rounded, color: AppColors.coral, size: 21),
-            SizedBox(width: 8),
-            Text('내 승리 지킴이',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900)),
-          ]),
-          const SizedBox(height: 14),
-          if (hitters.isEmpty && pitchers.isEmpty && decisiveHitLeaders.isEmpty)
-            const Text('응원팀이 지정된 완료 경기부터 선수 기록이 집계됩니다.',
-                style: TextStyle(color: Colors.white60, height: 1.5))
-          else ...[
-            _GuardianSection(
-              title: '타자 TOP 5',
-              items: hitters,
-              decisiveHitLeaders: decisiveHitLeaders,
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+              decoration: BoxDecoration(
+                color: const Color(0xD1122430),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.white.withValues(alpha: .15)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.emoji_events_rounded,
+                    color: AppColors.butter, size: 22),
+                const SizedBox(width: 9),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('내 승리 지킴이',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900)),
+                      Text('응원팀 승리 경기의 플레이어 보드',
+                          style:
+                              TextStyle(color: Colors.white60, fontSize: 10)),
+                    ],
+                  ),
+                ),
+                Image.asset(
+                  'assets/baseball_gear_cluster.png',
+                  width: 78,
+                  height: 62,
+                  fit: BoxFit.contain,
+                ),
+              ]),
             ),
-            const SizedBox(height: 12),
-            _GuardianSection(title: '투수 TOP 5', items: pitchers),
-          ],
-        ]),
+            const SizedBox(height: 14),
+            if (hitters.isEmpty &&
+                pitchers.isEmpty &&
+                decisiveHitLeaders.isEmpty)
+              const Text('응원팀이 지정된 완료 경기부터 선수 기록이 집계됩니다.',
+                  style: TextStyle(color: Colors.white60, height: 1.5))
+            else ...[
+              _GuardianSection(
+                title: '타자 TOP 5',
+                items: hitters,
+                decisiveHitLeaders: decisiveHitLeaders,
+              ),
+              const SizedBox(height: 12),
+              _GuardianSection(title: '투수 TOP 5', items: pitchers),
+            ],
+          ]),
+        ),
       ]),
     );
   }

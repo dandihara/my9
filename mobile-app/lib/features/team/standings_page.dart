@@ -146,7 +146,7 @@ class _StandingCard extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
@@ -154,133 +154,189 @@ class _StandingCard extends StatelessWidget {
         expand: false,
         initialChildSize: .66,
         maxChildSize: .9,
-        builder: (context, controller) => ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.line,
-                  borderRadius: BorderRadius.circular(99),
+        builder: (context, controller) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/stadium_outfield_backdrop.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                 ),
               ),
-            ),
-            const SizedBox(height: 18),
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 520),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) => Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 18 * (1 - value)),
-                  child: child,
-                ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [brand.primary, brand.secondary],
-                  ),
-                  borderRadius: BorderRadius.circular(27),
-                ),
-                child: Row(children: [
-                  Container(
-                    width: 78,
-                    height: 78,
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .92),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: TeamMascotIcon(teamName: teamName, size: 64),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(teamName,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 25,
-                                fontWeight: FontWeight.w900)),
-                        Text(
-                          '${row['rank']}위 · ${row['games']}경기',
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '${row['wins']}승 ${row['losses']}패 ${row['draws']}무',
-                          style: const TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.w800),
-                        ),
-                      ],
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xC8182940), Color(0xF016352F)],
                     ),
                   ),
-                ]),
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            _TeamMetricSection(
-              title: '승부 요약',
-              icon: Icons.scoreboard_rounded,
-              accent: brand.primary,
-              metrics: [
-                ('순위', '${row['rank']}위'),
-                ('승률', '${row['win_rate']}%'),
-                ('승패', '${row['wins']}승 ${row['losses']}패'),
-                ('무승부', row['draws']),
-                ('최근 10G',
-                    '${row['recent_10_wins']}승 ${row['recent_10_draws']}무 ${row['recent_10_losses']}패'),
-                ('득실차', row['run_difference']),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _TeamMetricSection(
-              title: '팀 타격',
-              icon: Icons.sports_baseball_rounded,
-              accent: AppColors.forest,
-              metrics: [
-                ('타율', row['team_batting_average']),
-                ('홈런', row['team_home_runs']),
-                ('안타', row['team_hits']),
-                ('출루율', row['team_on_base_percentage']),
-                ('장타율', row['team_slugging_percentage']),
-                ('OPS', row['team_ops']),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _TeamMetricSection(
-              title: '팀 투수',
-              icon: Icons.speed_rounded,
-              accent: brand.primary,
-              metrics: [
-                ('ERA', row['team_era']),
-                ('WHIP', row['team_whip']),
-                ('탈삼진', row['team_strikeouts']),
-                ('실점', row['runs_allowed']),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _TeamMetricSection(
-              title: '득점 생산',
-              icon: Icons.trending_up_rounded,
-              accent: AppColors.coral,
-              metrics: [
-                ('득점', row['runs_scored']),
-                ('실점', row['runs_allowed']),
-                ('경기당 득점',
-                    _perGame(row['runs_scored'] as num?, row['games'] as num?)),
-                ('경기당 실점',
-                    _perGame(row['runs_allowed'] as num?, row['games'] as num?)),
-              ],
-            ),
-          ],
+              ListView(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.white54,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 520),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, child) => Opacity(
+                      opacity: value,
+                      child: Transform.translate(
+                        offset: Offset(0, 18 * (1 - value)),
+                        child: child,
+                      ),
+                    ),
+                    child: Container(
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: const Color(0xD80D1D29),
+                        borderRadius: BorderRadius.circular(27),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Stack(children: [
+                        Positioned(
+                          right: -12,
+                          bottom: -14,
+                          child: Opacity(
+                            opacity: .5,
+                            child: Image.asset(
+                              'assets/baseball_gear_cluster.png',
+                              width: 126,
+                              height: 104,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(children: [
+                            Container(
+                              width: 78,
+                              height: 78,
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: .92),
+                                borderRadius: BorderRadius.circular(24),
+                                border:
+                                    Border.all(color: brand.primary, width: 2),
+                              ),
+                              child:
+                                  TeamMascotIcon(teamName: teamName, size: 64),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(teamName,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 25,
+                                          fontWeight: FontWeight.w900)),
+                                  Text(
+                                    '${row['rank']}위 · ${row['games']}경기',
+                                    style:
+                                        const TextStyle(color: Colors.white70),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    '${row['wins']}승 ${row['losses']}패 ${row['draws']}무',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 72),
+                          ]),
+                        ),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _TeamMetricSection(
+                    title: '승부 요약',
+                    icon: Icons.scoreboard_rounded,
+                    accent: brand.primary,
+                    metrics: [
+                      ('순위', '${row['rank']}위'),
+                      ('승률', '${row['win_rate']}%'),
+                      ('승패', '${row['wins']}승 ${row['losses']}패'),
+                      ('무승부', row['draws']),
+                      (
+                        '최근 10G',
+                        '${row['recent_10_wins']}승 ${row['recent_10_draws']}무 ${row['recent_10_losses']}패'
+                      ),
+                      ('득실차', row['run_difference']),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _TeamMetricSection(
+                    title: '팀 타격',
+                    icon: Icons.sports_baseball_rounded,
+                    accent: AppColors.forest,
+                    metrics: [
+                      ('타율', row['team_batting_average']),
+                      ('홈런', row['team_home_runs']),
+                      ('안타', row['team_hits']),
+                      ('출루율', row['team_on_base_percentage']),
+                      ('장타율', row['team_slugging_percentage']),
+                      ('OPS', row['team_ops']),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _TeamMetricSection(
+                    title: '팀 투수',
+                    icon: Icons.speed_rounded,
+                    accent: brand.primary,
+                    metrics: [
+                      ('ERA', row['team_era']),
+                      ('WHIP', row['team_whip']),
+                      ('탈삼진', row['team_strikeouts']),
+                      ('실점', row['runs_allowed']),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _TeamMetricSection(
+                    title: '득점 생산',
+                    icon: Icons.trending_up_rounded,
+                    accent: AppColors.coral,
+                    metrics: [
+                      ('득점', row['runs_scored']),
+                      ('실점', row['runs_allowed']),
+                      (
+                        '경기당 득점',
+                        _perGame(
+                            row['runs_scored'] as num?, row['games'] as num?)
+                      ),
+                      (
+                        '경기당 실점',
+                        _perGame(
+                            row['runs_allowed'] as num?, row['games'] as num?)
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -432,9 +488,16 @@ class _TeamMetricSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: const Color(0xDB102631),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: Colors.white.withValues(alpha: .16)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .14),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -442,15 +505,17 @@ class _TeamMetricSection extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: .1),
+              color: accent.withValues(alpha: .26),
               borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(icon, color: accent, size: 18),
+            child: Icon(icon, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 10),
           Text(title,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900)),
         ]),
         const SizedBox(height: 13),
         GridView.builder(
@@ -461,28 +526,29 @@ class _TeamMetricSection extends StatelessWidget {
             crossAxisCount: 3,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            childAspectRatio: 1.35,
+            childAspectRatio: 1.05,
           ),
           itemBuilder: (context, index) {
             final metric = metrics[index];
             return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
               decoration: BoxDecoration(
-                color: AppColors.cream,
+                color: Colors.black.withValues(alpha: .22),
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: .08)),
               ),
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(metric.$1,
                         style: const TextStyle(
-                            color: AppColors.muted, fontSize: 10)),
+                            color: Colors.white60, fontSize: 10)),
                     const SizedBox(height: 3),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text('${metric.$2 ?? '-'}',
-                          style: TextStyle(
-                              color: accent,
+                          style: const TextStyle(
+                              color: Colors.white,
                               fontSize: 17,
                               fontWeight: FontWeight.w900)),
                     ),
