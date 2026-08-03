@@ -104,6 +104,23 @@ void main() {
       matchesGoldenFile('goldens/stats_redesign.png'),
     );
   });
+
+  testWidgets('top five toggles qualifying innings without hiding pitchers',
+      (tester) async {
+    await setViewport(tester, const Size(390, 844), 1);
+    await tester.pumpWidget(app(const StatsPage()));
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.tap(find.text('투수'));
+    await tester.pump(const Duration(milliseconds: 900));
+
+    expect(find.text('TOP 5 · 규정이닝 적용'), findsOneWidget);
+    expect(find.textContaining('규정이닝 미달 선수'), findsNothing);
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
+    expect(find.text('TOP 5 · 규정이닝 미적용'), findsOneWidget);
+    expect(find.text('테스트 선수'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Map<String, dynamic> _statsPayload({required bool pitching}) {
@@ -123,6 +140,7 @@ Map<String, dynamic> _statsPayload({required bool pitching}) {
       if (pitching)
         {
           ...common,
+          'is_qualified': false,
           'era': 2.31,
           'whip': 1.05,
           'strikeouts': 88,

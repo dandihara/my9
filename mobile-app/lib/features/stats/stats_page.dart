@@ -19,6 +19,7 @@ class _StatsPageState extends State<StatsPage> {
   String? _selectedTeam;
   String _sortKey = 'primary';
   bool _pitching = false;
+  bool _applyQualificationToTopFive = true;
 
   void _sortPlayers(List<Map<String, dynamic>> players) {
     final field = switch ((_pitching, _sortKey)) {
@@ -270,12 +271,22 @@ class _StatsPageState extends State<StatsPage> {
               .cast<Map<String, dynamic>>()
               .toList();
           _sortPlayers(filtered);
-          final qualified = filtered
-              .where((player) => player['is_qualified'] == true)
-              .toList();
-          final below = filtered
-              .where((player) => player['is_qualified'] != true)
-              .toList();
+          // 투수 기록은 규정이닝으로 구분하지 않고 전원을 표시한다.
+          final primaryPlayers = _pitching
+              ? filtered
+              : filtered
+                  .where((player) => player['is_qualified'] == true)
+                  .toList();
+          final below = _pitching
+              ? <Map<String, dynamic>>[]
+              : filtered
+                  .where((player) => player['is_qualified'] != true)
+                  .toList();
+          final topPlayers = _applyQualificationToTopFive
+              ? filtered
+                  .where((player) => player['is_qualified'] == true)
+                  .toList()
+              : filtered;
           final methodology = source['methodology'] as String;
 
           return RefreshIndicator(
@@ -325,8 +336,25 @@ class _StatsPageState extends State<StatsPage> {
                   onSortChanged: (value) => setState(() => _sortKey = value),
                 ),
                 const SizedBox(height: 14),
+                Card(
+                  child: CheckboxListTile(
+                    value: _applyQualificationToTopFive,
+                    onChanged: (value) => setState(
+                      () => _applyQualificationToTopFive = value ?? true,
+                    ),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    title: Text(
+                      'TOP 5 · ${_pitching ? '규정이닝' : '규정타석'} '
+                      '${_applyQualificationToTopFive ? '적용' : '미적용'}',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 _TopRecordStrip(
-                  players: filtered,
+                  players: topPlayers,
                   pitching: _pitching,
                   onPlayerTap: (player) => _showPlayer(
                     player,
@@ -335,13 +363,13 @@ class _StatsPageState extends State<StatsPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                if (qualified.isEmpty)
+                if (primaryPlayers.isEmpty)
                   const Card(
                       child: Padding(
                           padding: EdgeInsets.all(22),
                           child: Center(child: Text('조건에 맞는 선수가 없습니다.'))))
                 else
-                  ...qualified.map((player) => Padding(
+                  ...primaryPlayers.map((player) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: _PlayerCard(
                           player: player,
@@ -493,7 +521,7 @@ class _BelowQualificationCard extends StatelessWidget {
       child: ExpansionTile(
         leading:
             const Icon(Icons.visibility_off_rounded, color: AppColors.muted),
-        title: Text('${pitching ? '규정이닝' : '규정타석'} 미달 선수 ${players.length}명',
+        title: Text('규정타석 미달 선수 ${players.length}명',
             style: const TextStyle(fontWeight: FontWeight.w900)),
         subtitle: const Text('눌러서 보기 또는 숨기기',
             style: TextStyle(color: AppColors.muted, fontSize: 12)),

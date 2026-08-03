@@ -274,7 +274,7 @@ async def season_pitching(
         as_of_date=await _as_of_date(db, season_year),
         methodology=(
             "시즌 집계 테이블의 ERA·WHIP·K/9·BB/9·K/BB·FIP·K-BB%입니다. "
-            "규정이닝은 팀 경기 수와 같은 이닝 수입니다. "
+            "TOP 5 규정이닝 필터는 팀 경기 수와 같은 이닝 수를 사용합니다. "
             "현재 시즌은 자정 동기화 후 재계산되고 과거 시즌은 고정됩니다."
         ),
         players=players,

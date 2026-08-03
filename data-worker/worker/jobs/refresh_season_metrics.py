@@ -14,7 +14,7 @@ def qualification_plate_appearances(team_games: int) -> int:
 
 
 def qualification_innings(team_games: int) -> int:
-    """KBO/official rule: one inning pitched per team game."""
+    """Official rule: one inning pitched per team game."""
     return max(team_games, 0)
 
 
