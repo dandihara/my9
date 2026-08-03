@@ -259,11 +259,6 @@ class _AttendanceInsightCard extends StatelessWidget {
                               color: Colors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.w900)),
-                      SizedBox(height: 7),
-                      Text('응원석에서 쌓인 경기 기록판',
-                          style: TextStyle(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w800)),
                     ]),
               ),
               Container(

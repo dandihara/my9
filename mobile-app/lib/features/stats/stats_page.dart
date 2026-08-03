@@ -282,11 +282,20 @@ class _StatsPageState extends State<StatsPage> {
               : filtered
                   .where((player) => player['is_qualified'] != true)
                   .toList();
-          final topPlayers = _applyQualificationToTopFive
-              ? filtered
-                  .where((player) => player['is_qualified'] == true)
-                  .toList()
-              : filtered;
+          final topPlayers = filtered.where((player) {
+            if (_applyQualificationToTopFive) {
+              return player['is_qualified'] == true;
+            }
+            final sample =
+                ((player[_pitching ? 'innings_pitched' : 'pa'] as num?) ?? 0)
+                    .toDouble();
+            final official = ((player[_pitching
+                        ? 'qualification_innings'
+                        : 'qualification_pa'] as num?) ??
+                    0)
+                .toDouble();
+            return sample > 0 && (official <= 0 || sample >= official * .5);
+          }).toList();
           final methodology = source['methodology'] as String;
 
           return RefreshIndicator(
@@ -349,6 +358,15 @@ class _StatsPageState extends State<StatsPage> {
                       'TOP 5 · ${_pitching ? '규정이닝' : '규정타석'} '
                       '${_applyQualificationToTopFive ? '적용' : '미적용'}',
                       style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: Text(
+                      _applyQualificationToTopFive
+                          ? 'KBO 공식 기준 · 타자 3.1타석/경기, 투수 1이닝/경기'
+                          : '표본 확대 · 공식 기준의 50% 이상만 포함',
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ),
@@ -808,118 +826,157 @@ class _TopRecordStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (players.isEmpty) return const SizedBox.shrink();
-    return SizedBox(
-      height: 178,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _specs.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final spec = _specs[index];
-          final source = spec.ascending
-              ? players
-                  .where((player) => ((player[spec.field] as num?) ?? 0) > 0)
-                  .toList()
-              : players.toList();
-          if (source.isEmpty) return const SizedBox.shrink();
-          final ranked = source
-            ..sort((left, right) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SizedBox(
+        height: 352,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: _specs.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (context, index) {
+            final spec = _specs[index];
+            final source = spec.ascending
+                ? players
+                    .where((player) => ((player[spec.field] as num?) ?? 0) > 0)
+                    .toList()
+                : players.toList();
+            source.sort((left, right) {
               final a = (left[spec.field] as num?) ?? 0;
               final b = (right[spec.field] as num?) ?? 0;
               return spec.ascending ? a.compareTo(b) : b.compareTo(a);
             });
-          final player = ranked.first;
-          final brand = TeamBrand.resolve(player['team_name'] as String);
-          final value = player[spec.field];
-          return Container(
-            width: 184,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.ink, brand.primary.withValues(alpha: .72)],
-              ),
-              borderRadius: BorderRadius.circular(23),
-              border: Border.all(color: Colors.white.withValues(alpha: .2)),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.ink.withValues(alpha: .14),
-                  blurRadius: 18,
-                  offset: const Offset(0, 9),
+            final ranked = source.take(5).toList();
+            if (ranked.isEmpty) return const SizedBox.shrink();
+            final brand =
+                TeamBrand.resolve(ranked.first['team_name'] as String);
+            return Container(
+              width: constraints.maxWidth * .94,
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.ink,
+                    brand.primary.withValues(alpha: .76),
+                  ],
                 ),
-              ],
-            ),
-            child: InkWell(
-              onTap: () => onPlayerTap(player),
-              borderRadius: BorderRadius.circular(23),
-              child: Padding(
-                padding: const EdgeInsets.all(13),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      _BoardLight(color: brand.secondary),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          spec.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ]),
-                    const Spacer(),
-                    Row(children: [
-                      TeamPlayerAvatar(
-                        teamName: player['team_name'] as String,
-                        size: 44,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          player['player_name'] as String,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ]),
-                    const SizedBox(height: 9),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 11, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: .22),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '$value${spec.suffix}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 25,
-                            fontWeight: FontWeight.w900,
-                          ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white.withValues(alpha: .2)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.ink.withValues(alpha: .14),
+                    blurRadius: 18,
+                    offset: const Offset(0, 9),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(children: [
+                    _BoardLight(color: brand.secondary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        spec.label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .24),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: const Text(
+                        'TOP 5',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 10),
+                  for (var rank = 0; rank < ranked.length; rank++)
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => onPlayerTap(ranked[rank]),
+                        borderRadius: BorderRadius.circular(13),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: Row(children: [
+                            SizedBox(
+                              width: 25,
+                              child: Text(
+                                '${rank + 1}',
+                                style: TextStyle(
+                                  color: rank == 0
+                                      ? AppColors.butter
+                                      : Colors.white54,
+                                  fontSize: rank == 0 ? 18 : 14,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            TeamPlayerAvatar(
+                              teamName: ranked[rank]['team_name'] as String,
+                              size: 34,
+                            ),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    ranked[rank]['player_name'] as String,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  Text(
+                                    ranked[rank]['team_name'] as String,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 9,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${ranked[rank][spec.field]}${spec.suffix}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

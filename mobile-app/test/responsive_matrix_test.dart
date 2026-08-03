@@ -126,6 +126,21 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('each metric card contains only its first five ranked players',
+      (tester) async {
+    await setViewport(tester, const Size(390, 844), 1);
+    await tester.pumpWidget(app(const StatsPage()));
+    await tester.pump(const Duration(milliseconds: 900));
+    final strip = find.byWidgetPredicate(
+      (widget) => widget.runtimeType.toString() == '_TopRecordStrip',
+    );
+    expect(find.descendant(of: strip, matching: find.text('테스트 선수 5')),
+        findsWidgets);
+    expect(find.descendant(of: strip, matching: find.text('테스트 선수 6')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final viewport in const [
     Size(320, 568),
     Size(390, 844),
@@ -224,46 +239,49 @@ Map<String, dynamic> _attendanceSummaryPayload() => {
     };
 
 Map<String, dynamic> _statsPayload({required bool pitching}) {
-  final common = <String, dynamic>{
-    'player_id': 1,
-    'player_name': '테스트 선수',
-    'team_name': 'NC 다이노스',
-    'is_qualified': true,
-    'total_wpa': 1.25,
-    'recent_games': <dynamic>[],
-  };
   return {
     'season_year': 2026,
     'as_of_date': '2026-08-03',
     'methodology': 'responsive test fixture',
-    'players': [
-      if (pitching)
-        {
+    'players': List.generate(6, (index) {
+      final common = <String, dynamic>{
+        'player_id': index + 1,
+        'player_name': index == 0 ? '테스트 선수' : '테스트 선수 ${index + 1}',
+        'team_name': 'NC 다이노스',
+        'is_qualified': !pitching,
+        'pa': 320 - index * 10,
+        'qualification_pa': 280,
+        'innings_pitched': 75 - index * 4,
+        'qualification_innings': 100,
+        'total_wpa': 1.25 - index * .05,
+        'recent_games': <dynamic>[],
+      };
+      if (pitching) {
+        return {
           ...common,
-          'is_qualified': false,
-          'era': 2.31,
-          'whip': 1.05,
-          'strikeouts': 88,
-          'fip': 2.75,
-          'k_bb': 4.2,
-          'k_bb_percent': 19.1,
-          'bb_per_nine': 2.1,
-          'hits': 61,
-        }
-      else
-        {
-          ...common,
-          'ops': .921,
-          'avg': .312,
-          'obp': .401,
-          'slg': .520,
-          'h': 101,
-          'hr': 21,
-          'rbi': 67,
-          'r': 72,
-          'sb': 11,
-          'estimated_wrc_plus': 143,
-        },
-    ],
+          'era': 2.31 + index * .1,
+          'whip': 1.05 + index * .02,
+          'strikeouts': 88 - index,
+          'fip': 2.75 + index * .1,
+          'k_bb': 4.2 - index * .1,
+          'k_bb_percent': 19.1 - index * .2,
+          'bb_per_nine': 2.1 + index * .1,
+          'hits': 61 + index,
+        };
+      }
+      return {
+        ...common,
+        'ops': .921 - index * .01,
+        'avg': .312 - index * .005,
+        'obp': .401 - index * .005,
+        'slg': .520 - index * .005,
+        'h': 101 - index,
+        'hr': 21 - index,
+        'rbi': 67 - index,
+        'r': 72 - index,
+        'sb': 11 - index,
+        'estimated_wrc_plus': 143 - index,
+      };
+    }),
   };
 }
