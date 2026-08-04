@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/network/api_client.dart';
@@ -17,6 +19,8 @@ class GameDetailPage extends StatefulWidget {
 
 class _GameDetailPageState extends State<GameDetailPage> {
   late Future<Map<String, dynamic>> _stats;
+  late Future<Map<String, dynamic>?> _live;
+  Timer? _liveTimer;
   int? _selectedTeamId;
   bool _showBatting = true;
 
@@ -24,9 +28,23 @@ class _GameDetailPageState extends State<GameDetailPage> {
   void initState() {
     super.initState();
     _reload();
+    _liveTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) setState(() => _live = _fetchLive());
+    });
+  }
+
+  Future<Map<String, dynamic>?> _fetchLive() async {
+    try {
+      final response = await ApiClient.instance.dio
+          .get<Map<String, dynamic>>('/v1/games/${widget.gameId}/live');
+      return response.data;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _reload() {
+    _live = _fetchLive();
     _stats = Future.wait([
       ApiClient.instance.dio
           .get<Map<String, dynamic>>('/v1/games/${widget.gameId}/stats'),
@@ -36,6 +54,12 @@ class _GameDetailPageState extends State<GameDetailPage> {
           ...responses[0].data!,
           'game': responses[1].data!,
         });
+  }
+
+  @override
+  void dispose() {
+    _liveTimer?.cancel();
+    super.dispose();
   }
 
   static String _positionLabel(Object? raw) {
@@ -70,7 +94,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
         .map((token) => labels[token])
         .whereType<String>()
         .toList();
-    if (transitions.length > 1 && transitions.length == value.characters.length) {
+    if (transitions.length > 1 &&
+        transitions.length == value.characters.length) {
       return transitions.join(' → ');
     }
     return value;
@@ -198,6 +223,17 @@ class _GameDetailPageState extends State<GameDetailPage> {
                       ]),
                 ]),
               ),
+              const SizedBox(height: 14),
+              FutureBuilder<Map<String, dynamic>?>(
+                future: _live,
+                builder: (context, liveSnapshot) => _LiveScoreboard(
+                  game: (liveSnapshot.data?['game'] as Map<String, dynamic>?) ??
+                      game,
+                  live: liveSnapshot.data,
+                  refreshing:
+                      liveSnapshot.connectionState == ConnectionState.waiting,
+                ),
+              ),
               const SizedBox(height: 24),
               _TeamTabs(
                 awayTeamName: game['away_team_name'] as String,
@@ -224,6 +260,306 @@ class _GameDetailPageState extends State<GameDetailPage> {
       ),
     );
   }
+}
+
+class _LiveScoreboard extends StatelessWidget {
+  const _LiveScoreboard({
+    required this.game,
+    required this.live,
+    required this.refreshing,
+  });
+
+  final Map<String, dynamic> game;
+  final Map<String, dynamic>? live;
+  final bool refreshing;
+
+  String get _statusLabel {
+    switch (game['status']) {
+      case 'in_progress':
+        return 'LIVE';
+      case 'completed':
+        return '경기 종료';
+      case 'cancelled':
+        return '경기 취소';
+      default:
+        return '경기 예정';
+    }
+  }
+
+  String get _inningLabel {
+    final inning = live?['inning'];
+    if (inning == null) {
+      return game['game_time']?.toString().substring(0, 5) ?? '-';
+    }
+    final half = live?['inning_half'] == 'bottom' ? '말' : '초';
+    return '$inning회$half';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final awayName = game['away_team_name']?.toString() ?? '-';
+    final homeName = game['home_team_name']?.toString() ?? '-';
+    final awayBrand = TeamBrand.resolve(awayName);
+    final homeBrand = TeamBrand.resolve(homeName);
+    final active = game['status'] == 'in_progress';
+    final baseState =
+        (live?['base_state']?.toString() ?? '000').padRight(3, '0');
+    final outs = (live?['outs'] as num?)?.toInt() ?? 0;
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: const Color(0xFF071D29),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFF244655), width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x26001B2A), blurRadius: 22, offset: Offset(0, 12)),
+        ],
+      ),
+      child: Stack(children: [
+        Positioned(
+          right: -34,
+          top: -42,
+          child: Container(
+            width: 150,
+            height: 150,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: homeBrand.primary.withValues(alpha: .18),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          child: Column(children: [
+            Row(children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: active
+                      ? const Color(0xFFFF4056)
+                      : const Color(0xFF91A5AE),
+                  shape: BoxShape.circle,
+                  boxShadow: active
+                      ? const [
+                          BoxShadow(color: Color(0x99FF4056), blurRadius: 8)
+                        ]
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(_statusLabel,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.1)),
+              const Spacer(),
+              if (refreshing)
+                const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 1.5, color: Color(0xFF83E2B5)))
+              else
+                const Text('10초 자동 갱신',
+                    style: TextStyle(color: Color(0xFF86A1AD), fontSize: 11)),
+            ]),
+            const SizedBox(height: 18),
+            Row(children: [
+              Expanded(
+                child: _ScoreTeam(
+                  teamName: awayName,
+                  score: game['away_score'],
+                  alignEnd: false,
+                  color: awayBrand.primary,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Column(children: [
+                  Text(_inningLabel,
+                      style: const TextStyle(
+                          color: Color(0xFFFFD268),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 4),
+                  const Text('VS',
+                      style: TextStyle(
+                          color: Color(0xFF6F8994),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800)),
+                ]),
+              ),
+              Expanded(
+                child: _ScoreTeam(
+                  teamName: homeName,
+                  score: game['home_score'],
+                  alignEnd: true,
+                  color: homeBrand.primary,
+                ),
+              ),
+            ]),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D2A37),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFF244653)),
+              ),
+              child: Row(children: [
+                _BaseDiamond(baseState: baseState),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(live?['description']?.toString() ?? _statusLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        Row(
+                            children: List.generate(
+                                3,
+                                (index) => Padding(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: Container(
+                                        width: 9,
+                                        height: 9,
+                                        decoration: BoxDecoration(
+                                          color: index < outs
+                                              ? const Color(0xFFFF4056)
+                                              : const Color(0xFF34515D),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ))),
+                      ]),
+                ),
+                Text('$outs OUT',
+                    style: const TextStyle(
+                        color: Color(0xFFFF8C93),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900)),
+              ]),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+class _ScoreTeam extends StatelessWidget {
+  const _ScoreTeam({
+    required this.teamName,
+    required this.score,
+    required this.alignEnd,
+    required this.color,
+  });
+
+  final String teamName;
+  final Object? score;
+  final bool alignEnd;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment:
+            alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment:
+                alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+            children: [
+              if (!alignEnd) TeamMascotIcon(teamName: teamName, size: 34),
+              if (!alignEnd) const SizedBox(width: 7),
+              Flexible(
+                child: Text(teamName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Color(0xFFD8E5EA),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800)),
+              ),
+              if (alignEnd) const SizedBox(width: 7),
+              if (alignEnd) TeamMascotIcon(teamName: teamName, size: 34),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(score?.toString() ?? '-',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 38,
+                  height: .95,
+                  fontWeight: FontWeight.w900,
+                  shadows: [
+                    Shadow(color: color.withValues(alpha: .8), blurRadius: 16)
+                  ])),
+        ],
+      );
+}
+
+class _BaseDiamond extends StatelessWidget {
+  const _BaseDiamond({required this.baseState});
+
+  final String baseState;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 54,
+        height: 42,
+        child: Stack(children: [
+          _base(left: 4, top: 18, occupied: baseState[2] == '1'),
+          _base(left: 21, top: 2, occupied: baseState[1] == '1'),
+          _base(left: 38, top: 18, occupied: baseState[0] == '1'),
+          Positioned(
+            left: 22,
+            top: 27,
+            child: Transform.rotate(
+              angle: .785,
+              child: Container(
+                  width: 10, height: 10, color: const Color(0xFFE8F0F2)),
+            ),
+          ),
+        ]),
+      );
+
+  static Widget _base(
+          {required double left,
+          required double top,
+          required bool occupied}) =>
+      Positioned(
+        left: left,
+        top: top,
+        child: Transform.rotate(
+          angle: .785,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            width: 13,
+            height: 13,
+            decoration: BoxDecoration(
+              color:
+                  occupied ? const Color(0xFFFFC94A) : const Color(0xFF294955),
+              border: Border.all(
+                  color: occupied
+                      ? const Color(0xFFFFE094)
+                      : const Color(0xFF6F8994)),
+              boxShadow: occupied
+                  ? const [BoxShadow(color: Color(0x99FFC94A), blurRadius: 8)]
+                  : null,
+            ),
+          ),
+        ),
+      );
 }
 
 class _TeamTabs extends StatelessWidget {
@@ -486,7 +822,15 @@ class _BattingLineupCard extends StatelessWidget {
   static String _eventLabel(String? type, [String? description]) {
     if (description != null) {
       for (final label in const [
-        '홈런', '3루타', '2루타', '안타', '볼넷', '사구', '삼진', '희생플라이', '실책'
+        '홈런',
+        '3루타',
+        '2루타',
+        '안타',
+        '볼넷',
+        '사구',
+        '삼진',
+        '희생플라이',
+        '실책'
       ]) {
         if (description.contains(label)) return label;
       }
