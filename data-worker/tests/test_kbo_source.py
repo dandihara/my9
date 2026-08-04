@@ -8,6 +8,7 @@ from worker.sources.kbo_source import (
     parse_boxscore_html,
     parse_game_events_html,
     parse_game_events_payload,
+    parse_live_game_payload,
     parse_schedule_html,
 )
 from worker.jobs.sync_boxscore import _normalize_event_scores
@@ -82,6 +83,59 @@ class ParseScheduleHtmlTest(unittest.TestCase):
         games = parse_schedule_html(HTML, 2026, 7)
 
         self.assertEqual(games[2]["status"], "scheduled")
+
+
+class ParseLiveGamePayloadTest(unittest.TestCase):
+    def test_parses_score_inning_outs_and_bases(self) -> None:
+        games = parse_live_game_payload(
+            {
+                "code": "100",
+                "game": [
+                    {
+                        "G_ID": "20260804LGSK0",
+                        "GAME_STATE_SC": "2",
+                        "GAME_INN_NO": 8,
+                        "GAME_TB_SC": "B",
+                        "GAME_TB_SC_NM": "말",
+                        "T_SCORE_CN": "8",
+                        "B_SCORE_CN": "9",
+                        "OUT_CN": 1,
+                        "B1_BAT_ORDER_NO": 2,
+                        "B2_BAT_ORDER_NO": 0,
+                        "B3_BAT_ORDER_NO": 5,
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(len(games), 1)
+        self.assertEqual(games[0]["status"], "in_progress")
+        self.assertEqual(games[0]["away_score"], 8)
+        self.assertEqual(games[0]["home_score"], 9)
+        self.assertEqual(games[0]["inning"], 8)
+        self.assertEqual(games[0]["inning_half"], "bottom")
+        self.assertEqual(games[0]["outs"], 1)
+        self.assertEqual(games[0]["base_state"], "101")
+        self.assertEqual(games[0]["description"], "8회말 1사")
+
+    def test_cancelled_game_has_no_score(self) -> None:
+        game = parse_live_game_payload(
+            {
+                "code": "100",
+                "game": [
+                    {
+                        "G_ID": "20260804NCOB0",
+                        "GAME_STATE_SC": "4",
+                        "T_SCORE_CN": "0",
+                        "B_SCORE_CN": "0",
+                    }
+                ],
+            }
+        )[0]
+
+        self.assertEqual(game["status"], "cancelled")
+        self.assertIsNone(game["away_score"])
+        self.assertIsNone(game["home_score"])
 
 
 BOXSCORE_HTML = """

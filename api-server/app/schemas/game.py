@@ -56,9 +56,22 @@ class PitchingStatRead(BaseModel):
     era_after_game: float | None = None
 
 
+class PlateAppearanceRead(BaseModel):
+    sequence_no: int
+    inning: int
+    inning_half: str
+    batting_team_id: int | None = None
+    batter_id: int | None = None
+    batter_name: str | None = None
+    event_type: str
+    description: str | None = None
+    runs_scored: int = 0
+
+
 class GameStatsRead(BaseModel):
     batting: list[BattingStatRead]
     pitching: list[PitchingStatRead]
+    plate_appearances: list[PlateAppearanceRead] = []
 
 
 class LiveGameRead(BaseModel):

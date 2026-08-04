@@ -110,16 +110,19 @@ class WorkerJobs:
         now = datetime.now(KST)
         if not self._has_pollable_game(now):
             return
-        async with self.lock:
-            try:
-                count = await sync_live_games(self.source, now.date())
-                logger.info(
-                    "live game sync complete date=%s games=%s",
-                    now.date(),
-                    count,
-                )
-            except Exception:
-                logger.exception("live game sync failed date=%s", now.date())
+        # Live polling uses KBO's lightweight GameCenter HTTP endpoint and
+        # does not touch the shared Selenium driver.  Keeping it outside the
+        # browser lock prevents long boxscore/backfill jobs from blocking the
+        # 10-second scoreboard refresh.
+        try:
+            count = await sync_live_games(self.source, now.date())
+            logger.info(
+                "live game sync complete date=%s games=%s",
+                now.date(),
+                count,
+            )
+        except Exception:
+            logger.exception("live game sync failed date=%s", now.date())
 
     async def sync_yesterday_boxscores(self) -> None:
         async with self.lock:

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
+import '../../core/services/game_companion_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/main_menu_button.dart';
 import '../../shared/widgets/home_weather_backdrop.dart';
@@ -140,6 +141,12 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(color: weatherForeground, fontFamily: 'Jua'),
                 ),
                 actions: [
+                  IconButton.filledTonal(
+                    style: weatherButtonStyle,
+                    tooltip: '마이페이지',
+                    onPressed: () => context.push('/profile'),
+                    icon: const Icon(Icons.person_rounded),
+                  ),
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: IconButton.filledTonal(
@@ -267,8 +274,11 @@ class _TeamDashboardCardState extends State<_TeamDashboardCard> {
     }
     _dashboard = ApiClient.instance.dio
         .get<Map<String, dynamic>>('/v1/teams/${widget.teamId}/dashboard')
-        .then((response) {
+        .then((response) async {
       final data = response.data!;
+      await GameCompanionService.updateNextGame(
+        data['next_game'] as Map<String, dynamic>?,
+      );
       widget.onWeatherChanged(
         data['stadium_weather'] as Map<String, dynamic>?,
       );

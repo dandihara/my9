@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Integer, Numeric, String
+from sqlalchemy import JSON, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
@@ -28,6 +28,7 @@ class BattingGameStat(Base, TimestampMixin):
     so: Mapped[int] = mapped_column(Integer, default=0)
     sb: Mapped[int] = mapped_column(Integer, default=0)
     avg_after_game: Mapped[float | None] = mapped_column(Numeric(5, 3), nullable=True)
+    plate_appearances: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
 
 
 class PitchingGameStat(Base, TimestampMixin):

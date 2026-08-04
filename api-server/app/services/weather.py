@@ -84,7 +84,9 @@ async def fetch_stadium_weather(
         }
 
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        # 날씨는 장식 정보이므로 느린 외부 API가 홈 대시보드 전체를
+        # 붙잡지 않도록 짧게 실패시키고 다음 갱신에서 다시 시도한다.
+        async with httpx.AsyncClient(timeout=1.5) as client:
             response = await client.get(
                 "https://api.open-meteo.com/v1/forecast",
                 params={

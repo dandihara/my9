@@ -154,6 +154,20 @@ String teamMascotAssetPath(String teamName) {
   return 'assets/app_icon_neutral.png';
 }
 
+String standingTeamMascotAssetPath(String teamName) {
+  final upper = teamName.toUpperCase();
+  if (upper.contains('두산') || upper.contains('DOOSAN')) return 'assets/team_mascot_standing/doosan.png';
+  if (upper.contains('LG')) return 'assets/team_mascot_standing/lg.png';
+  if (upper.contains('삼성') || upper.contains('SAMSUNG')) return 'assets/team_mascot_standing/samsung.png';
+  if (upper.contains('키움') || upper.contains('KIWOOM')) return 'assets/team_mascot_standing/kiwoom.png';
+  if (upper.contains('SSG')) return 'assets/team_mascot_standing/ssg.png';
+  if (upper.contains('KT')) return 'assets/team_mascot_standing/kt.png';
+  if (upper.contains('롯데') || upper.contains('LOTTE')) return 'assets/team_mascot_standing/lotte.png';
+  if (upper.contains('KIA')) return 'assets/team_mascot_standing/kia.png';
+  if (upper.contains('한화') || upper.contains('HANWHA')) return 'assets/team_mascot_standing/hanwha.png';
+  return 'assets/team_mascot_standing/nc.png';
+}
+
 enum TeamIconSection { schedule, attendance, stats, wpa, standings, league }
 
 String? _teamAssetKey(String teamName) {

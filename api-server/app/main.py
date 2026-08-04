@@ -6,7 +6,7 @@ from app.routers import attendance, attendance_leagues, auth, games, health, sta
 
 app = FastAPI(
     title="Seungyo API",
-    version="0.1.0",
+    version="1.2.0",
     description="야구 직관 관리 앱 API",
 )
 

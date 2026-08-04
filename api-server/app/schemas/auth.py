@@ -30,3 +30,13 @@ class TokenRead(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserRead
+
+
+class AchievementRead(BaseModel):
+    code: str
+    title: str
+    description: str
+    icon: str
+    current: int
+    target: int
+    unlocked: bool

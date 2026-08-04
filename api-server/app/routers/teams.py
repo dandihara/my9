@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends
@@ -21,6 +21,8 @@ from app.services.weather import fetch_stadium_weather
 
 router = APIRouter()
 KST = ZoneInfo("Asia/Seoul")
+STANDINGS_CACHE_TTL = timedelta(seconds=60)
+_standings_cache: dict[int, tuple[datetime, TeamStandingsRead]] = {}
 
 
 def _outs(innings: float | None) -> int:
@@ -53,6 +55,12 @@ def _record(games: list[Game], team_id: int) -> tuple[int, int, int, int, int]:
 async def _standings(db: AsyncSession, season_year: int | None) -> TeamStandingsRead:
     if season_year is None:
         season_year = await db.scalar(select(func.max(Game.season_year)))
+    if season_year is None:
+        season_year = datetime.now(KST).year
+    cached = _standings_cache.get(season_year)
+    now = datetime.now(timezone.utc)
+    if cached is not None and now - cached[0] < STANDINGS_CACHE_TTL:
+        return cached[1]
     teams = list((await db.execute(select(Team).order_by(Team.name))).scalars().all())
     games = list(
         (
@@ -192,7 +200,7 @@ async def _standings(db: AsyncSession, season_year: int | None) -> TeamStandings
         ),
         reverse=True,
     )
-    return TeamStandingsRead(
+    result = TeamStandingsRead(
         season_year=season_year,
         as_of_date=max((game.game_date for game in games), default=None),
         standings=[
@@ -229,6 +237,8 @@ async def _standings(db: AsyncSession, season_year: int | None) -> TeamStandings
             for rank, row in enumerate(rows, 1)
         ],
     )
+    _standings_cache[season_year] = (now, result)
+    return result
 
 
 @router.get("", response_model=list[TeamRead])
@@ -256,12 +266,41 @@ async def get_team_dashboard(
     db: AsyncSession = Depends(get_db),
 ) -> TeamDashboardRead:
     team = await db.get_one(Team, team_id)
-    standings = await _standings(db, None)
-    summary = next(row for row in standings.standings if row.team_id == team_id)
+    season_year = await db.scalar(select(func.max(Game.season_year)))
+    season_year = season_year or datetime.now(KST).year
+    completed_games = list(
+        (
+            await db.execute(
+                select(Game).where(
+                    Game.season_year == season_year,
+                    Game.status == "completed",
+                    Game.home_score.is_not(None),
+                    Game.away_score.is_not(None),
+                )
+            )
+        ).scalars().all()
+    )
     teams = {
         item.id: item.name
         for item in (await db.execute(select(Team))).scalars().all()
     }
+    ranked = []
+    for candidate_id in teams:
+        wins, losses, draws, scored, allowed = _record(completed_games, candidate_id)
+        decisions = wins + losses
+        ranked.append((candidate_id, wins, losses, draws, scored, allowed,
+                       wins / decisions if decisions else 0))
+    ranked.sort(key=lambda row: (row[6], row[1], row[4] - row[5]), reverse=True)
+    rank, row = next(
+        (rank, row) for rank, row in enumerate(ranked, start=1) if row[0] == team_id
+    )
+    summary = TeamSeasonSummaryRead(
+        season_year=season_year, team_id=team_id, team_name=team.name,
+        rank=rank, games=row[1] + row[2] + row[3], wins=row[1], losses=row[2],
+        draws=row[3], win_rate=round(row[6] * 100, 1), runs_scored=row[4],
+        runs_allowed=row[5], run_difference=row[4] - row[5],
+        recent_10_wins=0, recent_10_draws=0, recent_10_losses=0,
+    )
     stadiums = {
         item.id: item
         for item in (await db.execute(select(Stadium))).scalars().all()
@@ -270,7 +309,7 @@ async def get_team_dashboard(
         (
             await db.execute(
                 select(Game).where(
-                    Game.season_year == standings.season_year,
+                    Game.season_year == season_year,
                     (Game.home_team_id == team_id) | (Game.away_team_id == team_id),
                 )
             )

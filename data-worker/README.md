@@ -24,7 +24,7 @@ python -m worker.scrape_schedule --from-date 2026-07-01 --dry-run
 python -m worker.main
 ```
 
-상시 실행 모드는 오늘 일정과 결과를 1분마다 갱신합니다. 같은 KBO 경기 ID는 새 행을 만들지 않고 기존 행을 업데이트합니다.
+상시 실행 모드는 오늘 일정과 결과를 KBO 게임센터에서 10초마다 갱신합니다. 같은 KBO 경기 ID는 새 행을 만들지 않고 기존 행을 업데이트합니다.
 
 ## 타자·투수 기록
 

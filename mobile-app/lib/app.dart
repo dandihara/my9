@@ -10,6 +10,7 @@ import 'features/auth/signup_page.dart';
 import 'features/community/attendance_leagues_page.dart';
 import 'features/game/game_detail_page.dart';
 import 'features/home/home_page.dart';
+import 'features/profile/profile_page.dart';
 import 'features/schedule/schedule_page.dart';
 import 'features/stats/stats_page.dart';
 import 'features/team/my_team_page.dart';
@@ -63,6 +64,9 @@ final router = GoRouter(
     GoRoute(
         path: '/',
         pageBuilder: (context, state) => _page(state, const HomePage())),
+    GoRoute(
+        path: '/profile',
+        pageBuilder: (context, state) => _page(state, const ProfilePage())),
     GoRoute(
       path: '/schedule',
       pageBuilder: (context, state) => _page(

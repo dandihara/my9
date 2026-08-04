@@ -89,7 +89,8 @@ class _GameDetailPageState extends State<GameDetailPage> {
     return grouped.values.toList();
   }
 
-  Widget _battingSection(List<dynamic> rows) {
+  Widget _battingSection(
+      List<dynamic> rows, List<Map<String, dynamic>> plateAppearances) {
     final groups = _lineups(rows);
     return _Section(
       title: '타자 기록',
@@ -101,6 +102,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
           final lineup = entry.value;
           return _BattingLineupCard(
             lineup: lineup,
+            plateAppearances: plateAppearances,
             positionLabel: _positionLabel,
             showDivider: entry.key != groups.length - 1,
           );
@@ -162,6 +164,11 @@ class _GameDetailPageState extends State<GameDetailPage> {
               .where((row) =>
                   (row as Map<String, dynamic>)['team_id'] == selectedTeamId)
               .toList();
+          final plateAppearances =
+              (data['plate_appearances'] as List<dynamic>? ?? const [])
+                  .cast<Map<String, dynamic>>()
+                  .where((row) => row['batting_team_id'] == selectedTeamId)
+                  .toList();
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
             children: [
@@ -208,7 +215,7 @@ class _GameDetailPageState extends State<GameDetailPage> {
               ),
               const SizedBox(height: 18),
               if (_showBatting)
-                _battingSection(batting)
+                _battingSection(batting, plateAppearances)
               else
                 _pitchingSection(pitching),
             ],
@@ -376,11 +383,13 @@ class _Section extends StatelessWidget {
 class _BattingLineupCard extends StatelessWidget {
   const _BattingLineupCard({
     required this.lineup,
+    required this.plateAppearances,
     required this.positionLabel,
     required this.showDivider,
   });
 
   final List<Map<String, dynamic>> lineup;
+  final List<Map<String, dynamic>> plateAppearances;
   final String Function(Object? value) positionLabel;
   final bool showDivider;
 
@@ -399,6 +408,10 @@ class _BattingLineupCard extends StatelessWidget {
     final starter = lineup.first;
     final substitutes = lineup.skip(1).toList();
     final order = starter['batting_order'];
+    final lineupPlayerIds = lineup.map((row) => row['player_id']).toSet();
+    final appearances = plateAppearances
+        .where((event) => lineupPlayerIds.contains(event['batter_id']))
+        .toList();
     return Container(
       decoration: showDivider
           ? const BoxDecoration(
@@ -414,6 +427,32 @@ class _BattingLineupCard extends StatelessWidget {
           color:
               TeamBrand.resolve(starter['team_name']?.toString() ?? '').primary,
         ),
+        if (appearances.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: appearances.map((event) {
+                  final half = event['inning_half'] == 'bottom' ? '말' : '초';
+                  final description = event['description']?.toString() ??
+                      _eventLabel(event['event_type']?.toString());
+                  return Tooltip(
+                    message: description,
+                    child: Chip(
+                      visualDensity: VisualDensity.compact,
+                      avatar: Text('${event['inning']}$half',
+                          style: const TextStyle(fontSize: 10)),
+                      label: Text(_eventLabel(
+                          event['event_type']?.toString(), description)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
         if (substitutes.isNotEmpty)
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -442,6 +481,24 @@ class _BattingLineupCard extends StatelessWidget {
           ),
       ]),
     );
+  }
+
+  static String _eventLabel(String? type, [String? description]) {
+    if (description != null) {
+      for (final label in const [
+        '홈런', '3루타', '2루타', '안타', '볼넷', '사구', '삼진', '희생플라이', '실책'
+      ]) {
+        if (description.contains(label)) return label;
+      }
+    }
+    return switch (type) {
+      'home_run' => '홈런',
+      'hit' => '안타',
+      'walk' => '볼넷',
+      'strikeout' => '삼진',
+      'decisive_hit' => '결승타',
+      _ => '타석',
+    };
   }
 }
 

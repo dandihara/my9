@@ -153,7 +153,7 @@ class _StatsPageState extends State<StatsPage> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.white,
+      backgroundColor: const Color(0xFFF8F3EB),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (context) => DraggableScrollableSheet(
@@ -342,8 +342,9 @@ class _StatsPageState extends State<StatsPage> {
                   onSortChanged: (value) => setState(() => _sortKey = value),
                 ),
                 const SizedBox(height: 14),
-                Card(
-                  child: CheckboxListTile(
+                if (query.isEmpty) ...[
+                  Card(
+                    child: CheckboxListTile(
                     value: _applyQualificationToTopFive,
                     onChanged: (value) => setState(
                       () => _applyQualificationToTopFive = value ?? true,
@@ -365,20 +366,21 @@ class _StatsPageState extends State<StatsPage> {
                         fontSize: 11,
                       ),
                     ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                _TopRecordStrip(
-                  players: filtered,
-                  pitching: _pitching,
-                  applyQualification: _applyQualificationToTopFive,
-                  onPlayerTap: (player) => _showPlayer(
-                    player,
-                    methodology,
-                    source['as_of_date'] as String?,
+                  const SizedBox(height: 10),
+                  _TopRecordStrip(
+                    players: filtered,
+                    pitching: _pitching,
+                    applyQualification: _applyQualificationToTopFive,
+                    onPlayerTap: (player) => _showPlayer(
+                      player,
+                      methodology,
+                      source['as_of_date'] as String?,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
+                  const SizedBox(height: 10),
+                ],
                 if (primaryPlayers.isEmpty)
                   const Card(
                       child: Padding(
@@ -576,6 +578,7 @@ class _PlayerDetailHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 178,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -586,7 +589,17 @@ class _PlayerDetailHero extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: Colors.white.withValues(alpha: .24)),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: Stack(children: [
+        Positioned(
+          right: -8,
+          bottom: -34,
+          child: Text(
+            brand.initials,
+            style: TextStyle(color: Colors.white.withValues(alpha: .055), fontSize: 92,
+                fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
+          ),
+        ),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           _BoardLight(color: brand.secondary),
           const SizedBox(width: 7),
@@ -636,6 +649,7 @@ class _PlayerDetailHero extends StatelessWidget {
                       fontWeight: FontWeight.w900)),
             ]),
           ),
+        ]),
         ]),
       ]),
     );

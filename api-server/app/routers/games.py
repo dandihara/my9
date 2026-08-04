@@ -161,6 +161,23 @@ async def get_game_stats(game_id: int, db: AsyncSession = Depends(get_db)) -> Ga
     return GameStatsRead(
         batting=[batting_item(row) for row in batting_rows],
         pitching=[pitching_item(row) for row in pitching_rows],
+        plate_appearances=[
+            {
+                "sequence_no": index,
+                "inning": appearance["inning"],
+                "inning_half": (
+                    "top" if stat.team_id == game.away_team_id else "bottom"
+                ),
+                "batting_team_id": stat.team_id,
+                "batter_id": stat.player_id,
+                "batter_name": player_name,
+                "event_type": "plate_appearance",
+                "description": appearance["result"],
+                "runs_scored": 0,
+            }
+            for stat, player_name, _ in batting_rows
+            for index, appearance in enumerate(stat.plate_appearances or [], start=1)
+        ],
     )
 
 

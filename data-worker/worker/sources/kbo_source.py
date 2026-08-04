@@ -224,6 +224,69 @@ def parse_schedule_html(html: str, year: int, month: int) -> list[dict[str, Any]
     return games
 
 
+def parse_live_game_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize KBO's GameCenter response used by the live scoreboard.
+
+    The monthly schedule page is intentionally not used here: during a game it
+    can keep the original 0-0 score and preview label for several minutes.  The
+    GameCenter endpoint is the source that carries the current score, inning,
+    half-inning, outs, and occupied bases.
+    """
+    if str(payload.get("code")) != "100":
+        raise ValueError(
+            f"KBO live game list failed: {payload.get('msg') or payload.get('code')}"
+        )
+
+    status_by_code = {
+        "1": "scheduled",
+        "2": "in_progress",
+        "3": "completed",
+        "4": "cancelled",
+        "5": "in_progress",
+    }
+    games: list[dict[str, Any]] = []
+    for row in payload.get("game") or []:
+        game_id = str(row.get("G_ID") or "")
+        if not game_id:
+            continue
+        status = status_by_code.get(str(row.get("GAME_STATE_SC")), "scheduled")
+        inning = int(row.get("GAME_INN_NO") or 0) or None
+        half_code = str(row.get("GAME_TB_SC") or "").upper()
+        inning_half = {"T": "top", "B": "bottom"}.get(half_code)
+        outs_value = row.get("OUT_CN")
+        outs = int(outs_value) if outs_value is not None else None
+        base_state = "".join(
+            "1" if int(row.get(key) or 0) > 0 else "0"
+            for key in ("B1_BAT_ORDER_NO", "B2_BAT_ORDER_NO", "B3_BAT_ORDER_NO")
+        )
+        half_name = str(row.get("GAME_TB_SC_NM") or "")
+        description = None
+        if inning:
+            description = f"{inning}회{half_name}"
+            if outs is not None:
+                description += f" {outs}사"
+
+        games.append(
+            {
+                "external_source": "kbo",
+                "external_game_id": game_id,
+                "status": status,
+                "away_score": (
+                    None if status == "cancelled" else int(row.get("T_SCORE_CN") or 0)
+                ),
+                "home_score": (
+                    None if status == "cancelled" else int(row.get("B_SCORE_CN") or 0)
+                ),
+                "inning": inning,
+                "inning_half": inning_half,
+                "outs": outs,
+                "base_state": base_state,
+                "description": description,
+            }
+        )
+    return games
+
+
 def _number(value: str, *, decimal: bool = False) -> int | float | None:
     value = value.strip()
     if not value or value == "-":
@@ -258,10 +321,18 @@ def _parse_hitters(soup: BeautifulSoup, side: str, team_code: str) -> list[dict[
         if len(info) < 3 or len(stats) < 5 or not info[2] or info[2] == "TOTAL":
             continue
         outcomes = []
+        plate_appearances = []
         if index < len(outcome_rows):
-            for cell in outcome_rows[index].find_all("td", recursive=False):
+            for inning, cell in enumerate(
+                outcome_rows[index].find_all("td", recursive=False), start=1
+            ):
                 text = cell.get_text("/", strip=True)
-                outcomes.extend(part.strip() for part in text.split("/") if part.strip())
+                inning_outcomes = [part.strip() for part in text.split("/") if part.strip()]
+                outcomes.extend(inning_outcomes)
+                plate_appearances.extend(
+                    {"inning": inning, "result": outcome}
+                    for outcome in inning_outcomes
+                )
         home_runs = sum("홈" in outcome for outcome in outcomes)
         doubles = sum(
             any(marker in outcome for marker in ("좌2", "중2", "우2", "좌중2", "우중2"))
@@ -296,6 +367,7 @@ def _parse_hitters(soup: BeautifulSoup, side: str, team_code: str) -> list[dict[
                     "도루" in outcome and "실패" not in outcome
                     for outcome in outcomes
                 ),
+                "plate_appearances": plate_appearances,
             }
         )
     return hitters
@@ -603,11 +675,29 @@ class KboSource(BaseballDataSource):
         return [game for game in games if game["game_date"] == target_date]
 
     async def fetch_live_games(self, target_date: date) -> list[dict[str, Any]]:
-        # Live polling must bypass the monthly schedule cache. Otherwise a
-        # 10-second scheduler still returns the same page for the cache TTL.
-        self._month_cache.pop((target_date.year, target_date.month), None)
-        games = await self.fetch_schedule(target_date)
-        return [game for game in games if game["status"] in {"in_progress", "completed"}]
+        return await asyncio.to_thread(self._fetch_live_games, target_date)
+
+    def _fetch_live_games(self, target_date: date) -> list[dict[str, Any]]:
+        body = urlencode(
+            {
+                "leId": "1",
+                "srId": "0,1,3,4,5,6,7,8,9",
+                "date": target_date.strftime("%Y%m%d"),
+            }
+        ).encode("utf-8")
+        request = Request(
+            f"{settings.kbo_base_url.rstrip('/')}/ws/Main.asmx/GetKboGameList",
+            data=body,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Referer": f"{settings.kbo_base_url.rstrip('/')}/Schedule/GameCenter/Main.aspx",
+                "X-Requested-With": "XMLHttpRequest",
+                "User-Agent": "Mozilla/5.0",
+            },
+        )
+        with urlopen(request, timeout=settings.chrome_page_timeout_seconds) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        return parse_live_game_payload(payload)
 
     async def fetch_boxscore(self, external_game_id: str) -> dict[str, Any]:
         return await asyncio.to_thread(self._fetch_boxscore, external_game_id)

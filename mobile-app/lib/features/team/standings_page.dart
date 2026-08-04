@@ -203,68 +203,59 @@ class _StandingCard extends StatelessWidget {
                       ),
                     ),
                     child: Container(
+                      height: 205,
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
-                        color: const Color(0xD80D1D29),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF10172A),
+                            brand.primary,
+                            brand.secondary.withValues(alpha: .9),
+                          ],
+                        ),
                         borderRadius: BorderRadius.circular(27),
                         border: Border.all(color: Colors.white24),
                       ),
                       child: Stack(children: [
                         Positioned(
-                          right: -12,
-                          bottom: -14,
-                          child: Opacity(
-                            opacity: .5,
-                            child: Image.asset(
-                              'assets/baseball_gear_cluster.png',
-                              width: 126,
-                              height: 104,
-                              fit: BoxFit.contain,
-                            ),
+                          right: -8,
+                          top: 8,
+                          bottom: -5,
+                          width: 160,
+                          child: Image.asset(
+                            standingTeamMascotAssetPath(teamName),
+                            fit: BoxFit.contain,
+                            alignment: Alignment.bottomCenter,
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(20),
+                        Positioned(
+                          left: 18,
+                          top: 18,
                           child: Row(children: [
-                            Container(
-                              width: 78,
-                              height: 78,
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: .92),
-                                borderRadius: BorderRadius.circular(24),
-                                border:
-                                    Border.all(color: brand.primary, width: 2),
-                              ),
-                              child:
-                                  TeamMascotIcon(teamName: teamName, size: 64),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(teamName,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 25,
-                                          fontWeight: FontWeight.w900)),
-                                  Text(
-                                    '${row['rank']}위 · ${row['games']}경기',
-                                    style:
-                                        const TextStyle(color: Colors.white70),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    '${row['wins']}승 ${row['losses']}패 ${row['draws']}무',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 72),
+                            Container(width: 8, height: 8,
+                                decoration: const BoxDecoration(color: AppColors.coral, shape: BoxShape.circle)),
+                            const SizedBox(width: 7),
+                            const Text('TEAM BALLPARK PROFILE', style: TextStyle(
+                                color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900,
+                                letterSpacing: .8)),
+                          ]),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 52, 150, 18),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(teamName, maxLines: 2, overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white, fontFamily: 'Jua',
+                                    fontSize: 27, height: 1.05)),
+                            const Spacer(),
+                            Text('KBO ${row['rank']}위 · ${row['games']}경기',
+                                style: const TextStyle(color: AppColors.butter,
+                                    fontWeight: FontWeight.w900)),
+                            const SizedBox(height: 6),
+                            Text('${row['wins']}승 ${row['losses']}패 ${row['draws']}무',
+                                style: const TextStyle(color: Colors.white, fontSize: 17,
+                                    fontWeight: FontWeight.w900)),
                           ]),
                         ),
                       ]),

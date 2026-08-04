@@ -1,6 +1,8 @@
 import logging
 from typing import Any
 
+from psycopg.types.json import Jsonb
+
 from worker.db import get_conn
 from worker.sources.base import BaseballDataSource
 from worker.jobs.refresh_season_metrics import refresh_season_metrics
@@ -433,8 +435,8 @@ def sync_boxscore(
                 INSERT INTO batting_game_stats (
                     game_id, player_id, team_id, batting_order, position,
                     ab, r, h, doubles, triples, hr, rbi, bb, hbp, sf, so,
-                    sb, sh, ci, avg_after_game
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    sb, sh, ci, avg_after_game, plate_appearances
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     game_id,
@@ -457,6 +459,7 @@ def sync_boxscore(
                     item.get("sh", 0),
                     item.get("ci", 0),
                     item["avg_after_game"],
+                    Jsonb(item.get("plate_appearances", [])),
                 ),
             )
 
