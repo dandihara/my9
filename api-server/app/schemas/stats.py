@@ -63,6 +63,10 @@ class SeasonBattingPlayerRead(BaseModel):
     batting_wpa: float = 0
     pitching_wpa: float = 0
     total_wpa: float = 0
+    ops_rank: int | None = None
+    ops_percentile: int | None = None
+    wrc_plus_rank: int | None = None
+    wrc_plus_percentile: int | None = None
     recent_games: list[RecentBattingGameRead] = []
 
 
@@ -104,6 +108,10 @@ class SeasonPitchingPlayerRead(BaseModel):
     batting_wpa: float = 0
     pitching_wpa: float = 0
     total_wpa: float = 0
+    era_rank: int | None = None
+    era_percentile: int | None = None
+    whip_rank: int | None = None
+    whip_percentile: int | None = None
     recent_games: list[RecentPitchingGameRead] = []
 
 

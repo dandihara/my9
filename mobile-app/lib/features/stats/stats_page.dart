@@ -6,6 +6,24 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/async_state_view.dart';
 import '../../shared/widgets/team_brand.dart';
 
+Future<T?> _openSeasonPlayerPage<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool? isScrollControlled,
+  Color? backgroundColor,
+  ShapeBorder? shape,
+}) {
+  return Navigator.of(context).push<T>(
+    MaterialPageRoute<T>(
+      builder: (context) => Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: AppBar(title: const Text('시즌 선수 기록')),
+        body: builder(context),
+      ),
+    ),
+  );
+}
+
 class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
 
@@ -150,7 +168,7 @@ class _StatsPageState extends State<StatsPage> {
             ),
           ];
 
-    showModalBottomSheet<void>(
+    _openSeasonPlayerPage<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFFF8F3EB),
@@ -158,22 +176,14 @@ class _StatsPageState extends State<StatsPage> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (context) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: .8,
-        maxChildSize: .94,
+        initialChildSize: 1,
+        minChildSize: 1,
+        maxChildSize: 1,
         builder: (context, controller) => ListView(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(22, 12, 22, 36),
           children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 5,
-                decoration: BoxDecoration(
-                    color: AppColors.line,
-                    borderRadius: BorderRadius.circular(99)),
-              ),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 4),
             _PlayerDetailHero(
               player: player,
               brand: brand,
@@ -190,6 +200,11 @@ class _StatsPageState extends State<StatsPage> {
               ),
               const SizedBox(height: 8),
             ],
+            const Text(
+              '시즌 핵심 기록',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 10),
             _DetailReveal(
               intervalStart: 0,
               child: Row(children: [
@@ -197,19 +212,37 @@ class _StatsPageState extends State<StatsPage> {
                   child: _MetricCard(
                       label: primary.keys.first,
                       value: primary.values.first,
-                      color: AppColors.coral),
+                      color: AppColors.coral,
+                      rank: player[_pitching ? 'era_rank' : 'ops_rank'] as int?,
+                      percentile: player[_pitching
+                          ? 'era_percentile'
+                          : 'ops_percentile'] as int?),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _MetricCard(
                       label: primary.keys.last,
                       value: primary.values.last,
-                      color: AppColors.forest),
+                      color: AppColors.forest,
+                      rank: player[_pitching ? 'whip_rank' : 'wrc_plus_rank']
+                          as int?,
+                      percentile: player[_pitching
+                          ? 'whip_percentile'
+                          : 'wrc_plus_percentile'] as int?),
                 ),
               ]),
             ),
             const SizedBox(height: 16),
             if (recentGames.isNotEmpty) ...[
+              const Row(children: [
+                Text('최근 경기 기록',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                Spacer(),
+                Text('최근 10경기',
+                    style: TextStyle(fontSize: 11, color: AppColors.muted)),
+              ]),
+              const SizedBox(height: 10),
               _DetailReveal(
                 intervalStart: .08,
                 child: _RecentFiveGamePanel(
@@ -220,6 +253,11 @@ class _StatsPageState extends State<StatsPage> {
               ),
               const SizedBox(height: 16),
             ],
+            const Text(
+              '시즌 주요 기록',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 10),
             ...statGroups.indexed.expand((entry) => [
                   _DetailReveal(
                     intervalStart: .16 + entry.$1 * .08,
@@ -345,27 +383,28 @@ class _StatsPageState extends State<StatsPage> {
                 if (query.isEmpty) ...[
                   Card(
                     child: CheckboxListTile(
-                    value: _applyQualificationToTopFive,
-                    onChanged: (value) => setState(
-                      () => _applyQualificationToTopFive = value ?? true,
-                    ),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    dense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    title: Text(
-                      'TOP 5 · 비율 지표 ${_pitching ? '규정이닝' : '규정타석'} '
-                      '${_applyQualificationToTopFive ? '적용' : '미적용'}',
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    subtitle: Text(
-                      _applyQualificationToTopFive
-                          ? '비율 지표에 KBO 공식 기준 적용 · 누계 지표는 전체 선수'
-                          : '표본 확대 · 공식 기준의 50% 이상만 포함',
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 11,
+                      value: _applyQualificationToTopFive,
+                      onChanged: (value) => setState(
+                        () => _applyQualificationToTopFive = value ?? true,
                       ),
-                    ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12),
+                      title: Text(
+                        'TOP 5 · 비율 지표 ${_pitching ? '규정이닝' : '규정타석'} '
+                        '${_applyQualificationToTopFive ? '적용' : '미적용'}',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      subtitle: Text(
+                        _applyQualificationToTopFive
+                            ? '비율 지표에 KBO 공식 기준 적용 · 누계 지표는 전체 선수'
+                            : '표본 확대 · 공식 기준의 50% 이상만 포함',
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -595,61 +634,66 @@ class _PlayerDetailHero extends StatelessWidget {
           bottom: -34,
           child: Text(
             brand.initials,
-            style: TextStyle(color: Colors.white.withValues(alpha: .055), fontSize: 92,
-                fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
+            style: TextStyle(
+                color: Colors.white.withValues(alpha: .055),
+                fontSize: 92,
+                fontWeight: FontWeight.w900,
+                fontStyle: FontStyle.italic),
           ),
         ),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          _BoardLight(color: brand.secondary),
-          const SizedBox(width: 7),
-          Text(
-            pitching ? 'BULLPEN PROFILE' : 'LINEUP PROFILE',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
+          Row(children: [
+            _BoardLight(color: brand.secondary),
+            const SizedBox(width: 7),
+            Text(
+              pitching ? 'BULLPEN PROFILE' : 'LINEUP PROFILE',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
             ),
-          ),
-          const Spacer(),
-          const Icon(Icons.stadium_rounded, color: Colors.white70, size: 18),
-        ]),
-        const SizedBox(height: 18),
-        Row(children: [
-          Container(
-            width: 82,
-            height: 82,
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .92),
-              borderRadius: BorderRadius.circular(22),
+            const Spacer(),
+            const Icon(Icons.stadium_rounded, color: Colors.white70, size: 18),
+          ]),
+          const SizedBox(height: 18),
+          Row(children: [
+            Container(
+              width: 82,
+              height: 82,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .92),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: TeamPlayerAvatar(
+                teamName: player['team_name'] as String,
+                size: 70,
+              ),
             ),
-            child: TeamPlayerAvatar(
-              teamName: player['team_name'] as String,
-              size: 70,
+            const SizedBox(width: 17),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(player['team_name'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text(player['player_name'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 29,
+                            fontWeight: FontWeight.w900)),
+                  ]),
             ),
-          ),
-          const SizedBox(width: 17),
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(player['team_name'] as String,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white70, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(player['player_name'] as String,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 29,
-                      fontWeight: FontWeight.w900)),
-            ]),
-          ),
-        ]),
+          ]),
         ]),
       ]),
     );
@@ -1195,19 +1239,25 @@ class _StatsHeader extends StatelessWidget {
 
 class _MetricCard extends StatelessWidget {
   const _MetricCard(
-      {required this.label, required this.value, required this.color});
+      {required this.label,
+      required this.value,
+      required this.color,
+      this.rank,
+      this.percentile});
   final String label;
   final String value;
   final Color color;
+  final int? rank;
+  final int? percentile;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
-        color: AppColors.ink,
+        color: color.withValues(alpha: .09),
         borderRadius: BorderRadius.circular(21),
-        border: Border.all(color: color.withValues(alpha: .45)),
+        border: Border.all(color: color.withValues(alpha: .28)),
         boxShadow: [
           BoxShadow(
             color: AppColors.ink.withValues(alpha: .08),
@@ -1221,13 +1271,23 @@ class _MetricCard extends StatelessWidget {
           _BoardLight(color: color),
           const SizedBox(width: 7),
           Text(label,
-              style: const TextStyle(
-                  color: Colors.white70, fontWeight: FontWeight.w900)),
+              style: TextStyle(color: color, fontWeight: FontWeight.w900)),
         ]),
         const SizedBox(height: 8),
         Text(value,
             style: TextStyle(
                 color: color, fontSize: 28, fontWeight: FontWeight.w900)),
+        if (rank != null) ...[
+          const SizedBox(height: 5),
+          Text(
+            '리그 $rank위 · 상위 ${100 - (percentile ?? 0)}%',
+            style: TextStyle(
+              color: color.withValues(alpha: .82),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ]),
     );
   }
@@ -1394,7 +1454,7 @@ class _RecentFiveGamePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ordered = games.take(5).toList().reversed.toList();
+    final ordered = games.take(10).toList().reversed.toList();
     final values = ordered.map((game) {
       if (pitching) {
         final era = game['era_after_game'] as num?;
@@ -1418,16 +1478,14 @@ class _RecentFiveGamePanel extends StatelessWidget {
         border: Border.all(color: AppColors.line),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (pitching) ...[
-          SizedBox(
-            height: 126,
-            child: CustomPaint(
-              painter: _RecentLineChartPainter(values: values, color: accent),
-              child: const SizedBox.expand(),
-            ),
+        SizedBox(
+          height: 126,
+          child: CustomPaint(
+            painter: _RecentLineChartPainter(values: values, color: accent),
+            child: const SizedBox.expand(),
           ),
-          const SizedBox(height: 12),
-        ],
+        ),
+        const SizedBox(height: 12),
         ...ordered.map((game) => _RecentGameSummaryTile(
               game: game,
               pitching: pitching,

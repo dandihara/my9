@@ -618,7 +618,7 @@ class _TeamTab extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color:
               selected ? brand.primary.withValues(alpha: .12) : AppColors.white,
@@ -627,8 +627,8 @@ class _TeamTab extends StatelessWidget {
               color: selected ? brand.primary : AppColors.line, width: 2),
         ),
         child: Row(children: [
-          TeamMascotIcon(teamName: teamName, size: 42),
-          const SizedBox(width: 8),
+          TeamMascotIcon(teamName: teamName, size: 32),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(teamName,
                 maxLines: 1,
@@ -765,12 +765,12 @@ class _BattingLineupCard extends StatelessWidget {
         ),
         if (appearances.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 5,
+                runSpacing: 5,
                 children: appearances.map((event) {
                   final half = event['inning_half'] == 'bottom' ? '말' : '초';
                   final description = event['description']?.toString() ??
@@ -778,11 +778,15 @@ class _BattingLineupCard extends StatelessWidget {
                   return Tooltip(
                     message: description,
                     child: Chip(
-                      visualDensity: VisualDensity.compact,
-                      avatar: Text('${event['inning']}$half',
-                          style: const TextStyle(fontSize: 10)),
-                      label: Text(_eventLabel(
-                          event['event_type']?.toString(), description)),
+                      visualDensity:
+                          const VisualDensity(horizontal: -3, vertical: -3),
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                      label: Text(
+                        '${event['inning']}$half ${_eventLabel(event['event_type']?.toString(), description)}',
+                        style: const TextStyle(
+                            fontSize: 10, fontWeight: FontWeight.w800),
+                      ),
                     ),
                   );
                 }).toList(),
@@ -820,6 +824,10 @@ class _BattingLineupCard extends StatelessWidget {
   }
 
   static String _eventLabel(String? type, [String? description]) {
+    final exact = description?.trim();
+    if (exact != null && exact.isNotEmpty && exact != '-') {
+      return exact;
+    }
     if (description != null) {
       for (final label in const [
         '홈런',
@@ -868,31 +876,31 @@ class _PlayerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: showDivider
           ? const BoxDecoration(
               border: Border(bottom: BorderSide(color: AppColors.line)))
           : null,
       child: Row(children: [
         CircleAvatar(
-          radius: 20,
+          radius: 17,
           backgroundColor: color.withValues(alpha: .13),
           foregroundColor: color,
           child: Text(index == 0 ? '·' : '$index',
               style: const TextStyle(fontWeight: FontWeight.w800)),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 9),
         Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(name, style: const TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text('$teamName · $position',
                 style: const TextStyle(fontSize: 12, color: AppColors.muted)),
           ]),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
             color: color.withValues(alpha: .09),
             borderRadius: BorderRadius.circular(11),

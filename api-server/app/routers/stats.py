@@ -30,6 +30,25 @@ def _float(value) -> float:
     return float(value or 0)
 
 
+def _apply_rankings(
+    players: list,
+    field: str,
+    *,
+    ascending: bool = False,
+    rank_key: str | None = None,
+) -> None:
+    eligible = [player for player in players if player.is_qualified]
+    if not eligible:
+        eligible = players[:]
+    eligible.sort(key=lambda player: getattr(player, field), reverse=not ascending)
+    total = len(eligible)
+    for rank, player in enumerate(eligible, start=1):
+        output_key = rank_key or field
+        setattr(player, f"{output_key}_rank", rank)
+        percentile = 100 if total <= 1 else round((total - rank) * 100 / (total - 1))
+        setattr(player, f"{output_key}_percentile", percentile)
+
+
 def _pitching_decision_field(decision: str | None) -> str | None:
     normalized = (decision or "").strip()
     if not normalized:
@@ -102,7 +121,7 @@ async def _recent_batting_games(
     values: dict[tuple[int, int], list[dict]] = {}
     for stat, game, away_name, home_name in rows:
         key = (stat.player_id, stat.team_id)
-        if len(values.setdefault(key, [])) >= 5:
+        if len(values.setdefault(key, [])) >= 10:
             continue
         opponent_name = home_name if stat.team_id == game.away_team_id else away_name
         values[key].append(
@@ -144,7 +163,7 @@ async def _recent_pitching_games(
     values: dict[tuple[int, int], list[dict]] = {}
     for stat, game, away_name, home_name in rows:
         key = (stat.player_id, stat.team_id)
-        if len(values.setdefault(key, [])) >= 5:
+        if len(values.setdefault(key, [])) >= 10:
             continue
         opponent_name = home_name if stat.team_id == game.away_team_id else away_name
         values[key].append(
@@ -234,6 +253,8 @@ async def season_batting(
                 recent_games=recent_games.get(key, []),
             )
         )
+    _apply_rankings(players, "ops")
+    _apply_rankings(players, "estimated_wrc_plus", rank_key="wrc_plus")
     return SeasonBattingRead(
         season_year=season_year,
         as_of_date=await _as_of_date(db, season_year),
@@ -319,6 +340,8 @@ async def season_pitching(
                 recent_games=recent_games.get(key, []),
             )
         )
+    _apply_rankings(players, "era", ascending=True)
+    _apply_rankings(players, "whip", ascending=True)
     return SeasonPitchingRead(
         season_year=season_year,
         as_of_date=await _as_of_date(db, season_year),
