@@ -302,9 +302,12 @@ class _LiveScoreboard extends StatelessWidget {
     final awayBrand = TeamBrand.resolve(awayName);
     final homeBrand = TeamBrand.resolve(homeName);
     final active = game['status'] == 'in_progress';
-    final baseState =
+    final rawBaseState =
         (live?['base_state']?.toString() ?? '000').padRight(3, '0');
-    final outs = (live?['outs'] as num?)?.toInt() ?? 0;
+    final rawOuts = (live?['outs'] as num?)?.toInt() ?? 0;
+    final halfInningEnded = rawOuts >= 3;
+    final outs = rawOuts.clamp(0, 3);
+    final baseState = halfInningEnded ? '000' : rawBaseState;
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -417,7 +420,11 @@ class _LiveScoreboard extends StatelessWidget {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(live?['description']?.toString() ?? _statusLabel,
+                        Text(
+                            halfInningEnded
+                                ? '3아웃 · 이닝 종료'
+                                : live?['description']?.toString() ??
+                                    _statusLabel,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -443,7 +450,7 @@ class _LiveScoreboard extends StatelessWidget {
                                     ))),
                       ]),
                 ),
-                Text('$outs OUT',
+                Text(halfInningEnded ? '이닝 종료' : '$outs OUT',
                     style: const TextStyle(
                         color: Color(0xFFFF8C93),
                         fontSize: 12,
@@ -515,15 +522,15 @@ class _BaseDiamond extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 54,
-        height: 42,
+        width: 56,
+        height: 56,
         child: Stack(children: [
-          _base(left: 4, top: 18, occupied: baseState[2] == '1'),
-          _base(left: 21, top: 2, occupied: baseState[1] == '1'),
-          _base(left: 38, top: 18, occupied: baseState[0] == '1'),
+          _base(left: 5, top: 22, occupied: baseState[2] == '1'),
+          _base(left: 22, top: 5, occupied: baseState[1] == '1'),
+          _base(left: 39, top: 22, occupied: baseState[0] == '1'),
           Positioned(
-            left: 22,
-            top: 27,
+            left: 23,
+            top: 40,
             child: Transform.rotate(
               angle: .785,
               child: Container(
