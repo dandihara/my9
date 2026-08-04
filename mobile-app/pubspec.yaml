@@ -123,6 +123,14 @@ flutter:
     - assets/team_icons/sections/nc_standings.png
     - assets/team_icons/sections/nc_league.png
   fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Pretendard-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.ttf
+          weight: 700
     - family: Jua
       fonts:
         - asset: assets/fonts/Jua-Regular.ttf

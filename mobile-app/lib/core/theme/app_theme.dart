@@ -30,44 +30,47 @@ abstract final class AppTheme {
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      fontFamily: 'GowunDodum',
+      fontFamily: 'Pretendard',
     );
     return base.copyWith(
       scaffoldBackgroundColor: Colors.transparent,
       textTheme: base.textTheme.copyWith(
         headlineLarge: const TextStyle(
-            fontFamily: 'Jua',
+            fontFamily: 'Pretendard',
             color: AppColors.ink,
             fontSize: 33,
             height: 1.1,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w700,
             letterSpacing: -0.8),
         headlineSmall: const TextStyle(
-            fontFamily: 'Jua',
+            fontFamily: 'Pretendard',
             color: AppColors.ink,
             fontSize: 24,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w700,
             letterSpacing: -0.4),
         titleLarge: const TextStyle(
-            fontFamily: 'Jua',
+            fontFamily: 'Pretendard',
             color: AppColors.ink,
             fontSize: 20,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w700,
             letterSpacing: -0.2),
         titleMedium: const TextStyle(
-            fontFamily: 'Jua', color: AppColors.ink, fontSize: 17),
+            fontFamily: 'Pretendard',
+            color: AppColors.ink,
+            fontSize: 17,
+            fontWeight: FontWeight.w700),
         bodyLarge: const TextStyle(
-            fontFamily: 'GowunDodum',
+            fontFamily: 'Pretendard',
             color: AppColors.ink,
             height: 1.45,
             fontWeight: FontWeight.w600),
         bodyMedium: const TextStyle(
-            fontFamily: 'GowunDodum',
+            fontFamily: 'Pretendard',
             color: AppColors.muted,
             height: 1.42,
             fontWeight: FontWeight.w600),
         labelLarge: const TextStyle(
-            fontFamily: 'GowunDodum', fontWeight: FontWeight.w800),
+            fontFamily: 'Pretendard', fontWeight: FontWeight.w700),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -76,7 +79,7 @@ abstract final class AppTheme {
         centerTitle: false,
         elevation: 0,
         titleTextStyle: TextStyle(
-            fontFamily: 'Jua',
+            fontFamily: 'Pretendard',
             color: AppColors.ink,
             fontSize: 23,
             fontWeight: FontWeight.w400,
@@ -96,7 +99,7 @@ abstract final class AppTheme {
         fillColor: const Color(0xFFFFFCF7),
         labelStyle: const TextStyle(
           color: AppColors.muted,
-          fontFamily: 'GowunDodum',
+          fontFamily: 'Pretendard',
           fontWeight: FontWeight.w700,
         ),
         prefixIconColor: AppColors.forest,
@@ -121,14 +124,16 @@ abstract final class AppTheme {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           textStyle: const TextStyle(
-              fontFamily: 'Jua', fontSize: 17, fontWeight: FontWeight.w400),
+              fontFamily: 'Pretendard',
+              fontSize: 17,
+              fontWeight: FontWeight.w700),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.forest,
           textStyle: const TextStyle(
-            fontFamily: 'GowunDodum',
+            fontFamily: 'Pretendard',
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -139,7 +144,7 @@ abstract final class AppTheme {
         backgroundColor: AppColors.scoreboard,
         selectedColor: AppColors.leaf,
         labelStyle: const TextStyle(
-          fontFamily: 'GowunDodum',
+          fontFamily: 'Pretendard',
           color: AppColors.ink,
           fontWeight: FontWeight.w800,
         ),
@@ -148,9 +153,12 @@ abstract final class AppTheme {
         labelColor: AppColors.ink,
         unselectedLabelColor: AppColors.muted,
         indicatorColor: AppColors.coral,
-        labelStyle: TextStyle(fontFamily: 'Jua', fontSize: 16),
+        labelStyle: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 16,
+            fontWeight: FontWeight.w700),
         unselectedLabelStyle:
-            TextStyle(fontFamily: 'GowunDodum', fontWeight: FontWeight.w800),
+            TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
         dividerColor: Colors.transparent,
       ),
       bottomSheetTheme: const BottomSheetThemeData(
@@ -167,7 +175,7 @@ abstract final class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.ink,
         contentTextStyle: const TextStyle(
-          fontFamily: 'GowunDodum',
+          fontFamily: 'Pretendard',
           color: Colors.white,
           fontWeight: FontWeight.w700,
         ),
@@ -180,7 +188,7 @@ abstract final class AppTheme {
       ),
       dropdownMenuTheme: const DropdownMenuThemeData(
         textStyle: TextStyle(
-          fontFamily: 'GowunDodum',
+          fontFamily: 'Pretendard',
           color: AppColors.ink,
           fontWeight: FontWeight.w800,
         ),
@@ -189,7 +197,7 @@ abstract final class AppTheme {
         color: AppColors.white,
         surfaceTintColor: Colors.transparent,
         textStyle: TextStyle(
-          fontFamily: 'GowunDodum',
+          fontFamily: 'Pretendard',
           color: AppColors.ink,
           fontWeight: FontWeight.w800,
         ),

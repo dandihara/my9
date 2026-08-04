@@ -168,6 +168,23 @@ class _StatsPageState extends State<StatsPage> {
             ),
           ];
 
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => _SeasonPlayerDetailPage(
+            player: player,
+            pitching: _pitching,
+            brand: brand,
+            primary: primary,
+            statGroups: statGroups,
+            recentGames: recentGames,
+            asOfDate: asOfDate,
+          ),
+        ),
+      );
+      return;
+    }
+
     _openSeasonPlayerPage<void>(
       context: context,
       isScrollControlled: true,
@@ -603,6 +620,195 @@ class _BelowQualificationCard extends StatelessWidget {
   }
 }
 
+class _SeasonPlayerDetailPage extends StatelessWidget {
+  const _SeasonPlayerDetailPage({
+    required this.player,
+    required this.pitching,
+    required this.brand,
+    required this.primary,
+    required this.statGroups,
+    required this.recentGames,
+    required this.asOfDate,
+  });
+
+  final Map<String, dynamic> player;
+  final bool pitching;
+  final TeamBrand brand;
+  final Map<String, String> primary;
+  final List<_StatGroup> statGroups;
+  final List<Map<String, dynamic>> recentGames;
+  final String? asOfDate;
+
+  int? _rank(bool secondary) => player[pitching
+      ? (secondary ? 'whip_rank' : 'era_rank')
+      : (secondary ? 'wrc_plus_rank' : 'ops_rank')] as int?;
+
+  int? _percentile(bool secondary) => player[pitching
+      ? (secondary ? 'whip_percentile' : 'era_percentile')
+      : (secondary ? 'wrc_plus_percentile' : 'ops_percentile')] as int?;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFFCF7),
+      appBar: AppBar(title: const Text('시즌 선수 기록')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 36),
+        children: [
+          _PlayerDetailHero(player: player, brand: brand, pitching: pitching),
+          const SizedBox(height: 20),
+          Row(children: [
+            Text(
+              '${DateTime.now().year} 시즌 기록',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            const Spacer(),
+            if (asOfDate != null)
+              Text(
+                '$asOfDate 기준',
+                style: const TextStyle(color: AppColors.muted, fontSize: 10),
+              ),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(
+              child: _ReferenceMetricCard(
+                label: primary.keys.first,
+                value: primary.values.first,
+                color: AppColors.coral,
+                rank: _rank(false),
+                percentile: _percentile(false),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ReferenceMetricCard(
+                label: primary.keys.last,
+                value: primary.values.last,
+                color: AppColors.forest,
+                rank: _rank(true),
+                percentile: _percentile(true),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 14),
+          if (recentGames.isNotEmpty) ...[
+            _DetailSectionCard(
+              title: '최근 경기 기록',
+              trailing: '최근 10경기',
+              child: _RecentFiveGamePanel(
+                games: recentGames,
+                pitching: pitching,
+                accent: brand.primary,
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+          _DetailSectionCard(
+            title: '시즌 주요 기록',
+            child: Column(
+              children: statGroups
+                  .map((group) =>
+                      _StatGroupCard(group: group, accent: brand.primary))
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReferenceMetricCard extends StatelessWidget {
+  const _ReferenceMetricCard({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.rank,
+    required this.percentile,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+  final int? rank;
+  final int? percentile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: .25)),
+      ),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Text(label,
+            style: TextStyle(
+                color: color, fontSize: 12, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        FittedBox(
+          child: Text(value,
+              style: TextStyle(
+                  color: color, fontSize: 31, fontWeight: FontWeight.w900)),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          rank == null
+              ? '규정 기준 집계 중'
+              : '리그 $rank위 · 상위 ${100 - (percentile ?? 0)}%',
+          style: TextStyle(
+              color: color, fontSize: 10, fontWeight: FontWeight.w800),
+        ),
+      ]),
+    );
+  }
+}
+
+class _DetailSectionCard extends StatelessWidget {
+  const _DetailSectionCard(
+      {required this.title, required this.child, this.trailing});
+
+  final String title;
+  final String? trailing;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(
+            title.contains('최근')
+                ? Icons.show_chart_rounded
+                : Icons.grid_view_rounded,
+            size: 18,
+            color: AppColors.coral,
+          ),
+          const SizedBox(width: 7),
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+          const Spacer(),
+          if (trailing != null)
+            Text(trailing!,
+                style: const TextStyle(color: AppColors.muted, fontSize: 10)),
+        ]),
+        const SizedBox(height: 10),
+        child,
+      ]),
+    );
+  }
+}
+
 class _PlayerDetailHero extends StatelessWidget {
   const _PlayerDetailHero({
     required this.player,
@@ -655,7 +861,7 @@ class _PlayerDetailHero extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.stadium_rounded, color: Colors.white70, size: 18),
+            const Icon(Icons.stadium_outlined, color: Colors.white70, size: 19),
           ]),
           const SizedBox(height: 18),
           Row(children: [
