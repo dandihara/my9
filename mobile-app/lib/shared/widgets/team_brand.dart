@@ -156,15 +156,20 @@ String teamMascotAssetPath(String teamName) {
 
 String standingTeamMascotAssetPath(String teamName) {
   final upper = teamName.toUpperCase();
-  if (upper.contains('두산') || upper.contains('DOOSAN')) return 'assets/team_mascot_standing/doosan.png';
+  if (upper.contains('두산') || upper.contains('DOOSAN'))
+    return 'assets/team_mascot_standing/doosan.png';
   if (upper.contains('LG')) return 'assets/team_mascot_standing/lg.png';
-  if (upper.contains('삼성') || upper.contains('SAMSUNG')) return 'assets/team_mascot_standing/samsung.png';
-  if (upper.contains('키움') || upper.contains('KIWOOM')) return 'assets/team_mascot_standing/kiwoom.png';
+  if (upper.contains('삼성') || upper.contains('SAMSUNG'))
+    return 'assets/team_mascot_standing/samsung.png';
+  if (upper.contains('키움') || upper.contains('KIWOOM'))
+    return 'assets/team_mascot_standing/kiwoom.png';
   if (upper.contains('SSG')) return 'assets/team_mascot_standing/ssg.png';
   if (upper.contains('KT')) return 'assets/team_mascot_standing/kt.png';
-  if (upper.contains('롯데') || upper.contains('LOTTE')) return 'assets/team_mascot_standing/lotte.png';
+  if (upper.contains('롯데') || upper.contains('LOTTE'))
+    return 'assets/team_mascot_standing/lotte.png';
   if (upper.contains('KIA')) return 'assets/team_mascot_standing/kia.png';
-  if (upper.contains('한화') || upper.contains('HANWHA')) return 'assets/team_mascot_standing/hanwha.png';
+  if (upper.contains('한화') || upper.contains('HANWHA'))
+    return 'assets/team_mascot_standing/hanwha.png';
   return 'assets/team_mascot_standing/nc.png';
 }
 
@@ -469,7 +474,7 @@ class _TeamMascotPainter extends CustomPainter {
           color: color,
           fontSize: fontSize,
           fontWeight: weight,
-          fontFamily: 'Jua',
+          fontFamily: 'Pretendard',
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -495,67 +500,12 @@ class TeamPlayerAvatar extends StatelessWidget {
     final brand = TeamBrand.resolve(teamName);
     return SizedBox.square(
       dimension: effectiveSize,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: effectiveSize * .12),
-            child: Image.asset(
-              'assets/player_ball_face.png',
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-            ),
-          ),
-          CustomPaint(painter: _PlayerCapPainter(brand)),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayerCapPainter extends CustomPainter {
-  const _PlayerCapPainter(this.brand);
-
-  final TeamBrand brand;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = size.width / 100;
-    canvas.scale(scale);
-    canvas.drawPath(
-      Path()
-        ..moveTo(17, 39)
-        ..quadraticBezierTo(25, 3, 53, 2)
-        ..quadraticBezierTo(78, 3, 86, 36)
-        ..quadraticBezierTo(55, 25, 17, 39)
-        ..close(),
-      Paint()..color = brand.primary,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(18, 37)
-        ..quadraticBezierTo(55, 25, 91, 39)
-        ..quadraticBezierTo(72, 47, 47, 39)
-        ..quadraticBezierTo(29, 35, 18, 37)
-        ..close(),
-      Paint()..color = brand.secondary,
-    );
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: brand.initials,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-          fontFamily: 'Jua',
+      child: CustomPaint(
+        painter: _TeamMascotPainter(
+          brand: brand,
+          section: null,
         ),
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(canvas, Offset(53 - textPainter.width / 2, 10));
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant _PlayerCapPainter oldDelegate) =>
-      oldDelegate.brand != brand;
 }
