@@ -501,11 +501,131 @@ class TeamPlayerAvatar extends StatelessWidget {
     return SizedBox.square(
       dimension: effectiveSize,
       child: CustomPaint(
-        painter: _TeamMascotPainter(
-          brand: brand,
-          section: null,
-        ),
+        painter: _PlayerBallPainter(brand),
       ),
     );
   }
+}
+
+class _PlayerBallPainter extends CustomPainter {
+  const _PlayerBallPainter(this.brand);
+
+  final TeamBrand brand;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = size.width / 100;
+    canvas
+      ..save()
+      ..scale(scale);
+
+    canvas.drawOval(
+      const Rect.fromLTWH(21, 84, 58, 9),
+      Paint()
+        ..color = const Color(0xFF10213A).withValues(alpha: .14)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+
+    final faceRect = Rect.fromCircle(center: const Offset(50, 57), radius: 35);
+    canvas.drawCircle(
+      const Offset(50, 57),
+      35,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-.32, -.38),
+          radius: .92,
+          colors: [Color(0xFFFFFFFF), Color(0xFFFFF8EC), Color(0xFFE9DED0)],
+          stops: [0, .7, 1],
+        ).createShader(faceRect),
+    );
+
+    final seam = Paint()
+      ..color = const Color(0xFFE74B42)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.55
+      ..strokeCap = StrokeCap.round;
+    final leftSeam = Path()
+      ..moveTo(24, 35)
+      ..cubicTo(34, 43, 34, 69, 25, 79);
+    final rightSeam = Path()
+      ..moveTo(76, 35)
+      ..cubicTo(66, 43, 66, 69, 75, 79);
+    canvas
+      ..drawPath(leftSeam, seam)
+      ..drawPath(rightSeam, seam);
+    for (var i = 0; i < 6; i++) {
+      final y = 41 + i * 6.4;
+      canvas.drawLine(Offset(28.5, y), Offset(33.5, y - 2.2), seam);
+      canvas.drawLine(Offset(71.5, y), Offset(66.5, y - 2.2), seam);
+    }
+
+    final capShadow = Paint()..color = Colors.black.withValues(alpha: .14);
+    canvas.drawPath(
+      Path()
+        ..moveTo(23, 36)
+        ..quadraticBezierTo(28, 12, 52, 10)
+        ..quadraticBezierTo(74, 12, 79, 35)
+        ..quadraticBezierTo(51, 29, 23, 36)
+        ..close(),
+      capShadow,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(22, 34)
+        ..quadraticBezierTo(28, 9, 51, 8)
+        ..quadraticBezierTo(74, 10, 79, 33)
+        ..quadraticBezierTo(52, 27, 22, 34)
+        ..close(),
+      Paint()..color = brand.primary,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(22, 33)
+        ..quadraticBezierTo(52, 26, 85, 35)
+        ..quadraticBezierTo(71, 41, 54, 35)
+        ..quadraticBezierTo(36, 30, 22, 33)
+        ..close(),
+      Paint()..color = brand.secondary,
+    );
+
+    final mark = TextPainter(
+      text: TextSpan(
+        text: brand.initials,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          height: 1,
+          fontWeight: FontWeight.w900,
+          fontFamily: 'Pretendard',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    mark.paint(canvas, Offset(51 - mark.width / 2, 15));
+
+    final eye = Paint()..color = const Color(0xFF17223B);
+    canvas
+      ..drawOval(const Rect.fromLTWH(39, 50, 4.2, 5.6), eye)
+      ..drawOval(const Rect.fromLTWH(57, 50, 4.2, 5.6), eye)
+      ..drawCircle(const Offset(36, 60), 3.6,
+          Paint()..color = const Color(0xFFFFA7A3).withValues(alpha: .55))
+      ..drawCircle(const Offset(64, 60), 3.6,
+          Paint()..color = const Color(0xFFFFA7A3).withValues(alpha: .55));
+    canvas.drawArc(
+      const Rect.fromLTWH(44, 55, 12, 8),
+      .15,
+      2.84,
+      false,
+      Paint()
+        ..color = eye.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlayerBallPainter oldDelegate) =>
+      oldDelegate.brand != brand;
 }
