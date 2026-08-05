@@ -1,8 +1,7 @@
 class AppConfig {
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000',
-  );
+  // Distributed Android builds always use the externally reachable API.
+  // Keep local/emulator endpoints out of the application binary.
+  static const String apiBaseUrl = 'http://14.34.103.137:8000';
 
   static const String doosanSectionTheme = String.fromEnvironment(
     'DOOSAN_SECTION_THEME',
