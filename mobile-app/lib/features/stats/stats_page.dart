@@ -131,20 +131,14 @@ class _StatsPageState extends State<StatsPage> {
               title: '',
               icon: Icons.sports_baseball_rounded,
               stats: {
+                'ERA': '${player['era']}',
+                '이닝': '${player['innings_pitched']}',
                 '승': '${player['wins'] ?? 0}',
                 '패': '${player['losses'] ?? 0}',
                 '홀드': '${player['holds'] ?? 0}',
                 '세이브': '${player['saves'] ?? 0}',
-                '이닝': '${player['innings_pitched']}',
-                '자책': '${player['earned_runs']}',
                 '삼진': '${player['strikeouts']}',
-                '피안타': '${player['hits']}',
-                '볼넷': '${player['walks']}',
-                '피홈런': '${player['home_runs']}',
-                '상대 타자': '${player['batters_faced']}',
-                'K/9': '${player['k_per_nine']}',
-                'K/BB': '${player['k_bb']}',
-                'FIP': '${player['fip']}',
+                'WHIP': '${player['whip']}',
               },
             ),
           ]
@@ -158,12 +152,9 @@ class _StatsPageState extends State<StatsPage> {
                 '안타': '${player['h']}',
                 '홈런': '${player['hr']}',
                 '타점': '${player['rbi']}',
-                '득점': '${player['r']}',
-                '도루': '${player['sb'] ?? 0}',
-                '볼넷': '${player['bb']}',
-                '삼진': '${player['so']}',
                 '출루율': '${player['obp']}',
                 '장타율': '${player['slg']}',
+                'OPS': '${player['ops']}',
               },
             ),
           ];
@@ -265,7 +256,6 @@ class _StatsPageState extends State<StatsPage> {
                 child: _RecentFiveGamePanel(
                   games: recentGames,
                   pitching: _pitching,
-                  accent: brand.primary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -695,11 +685,10 @@ class _SeasonPlayerDetailPage extends StatelessWidget {
           if (recentGames.isNotEmpty) ...[
             _DetailSectionCard(
               title: '최근 경기 기록',
-              trailing: '최근 10경기',
+              trailing: '더보기 〉',
               child: _RecentFiveGamePanel(
                 games: recentGames,
                 pitching: pitching,
-                accent: brand.primary,
               ),
             ),
             const SizedBox(height: 14),
@@ -1519,20 +1508,10 @@ class _StatGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF4),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.line),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.ink.withValues(alpha: .045),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: group.title.isEmpty
+          ? EdgeInsets.zero
+          : const EdgeInsets.fromLTRB(4, 4, 4, 6),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (group.title.isNotEmpty) ...[
           Row(children: [
@@ -1559,13 +1538,13 @@ class _StatGroupCard extends StatelessWidget {
         ],
         LayoutBuilder(
           builder: (context, constraints) {
-            const spacing = 9.0;
-            final width = (constraints.maxWidth - spacing) / 2;
+            const spacing = 6.0;
+            final width = (constraints.maxWidth - spacing * 3) / 4;
             return Wrap(
               spacing: spacing,
               runSpacing: spacing,
               children: [
-                for (final stat in group.stats.entries)
+                for (final stat in group.stats.entries.take(8))
                   SizedBox(
                     width: width,
                     child: _StatTile(label: stat.key, value: stat.value),
@@ -1588,11 +1567,11 @@ class _StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 69),
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      constraints: const BoxConstraints(minHeight: 62),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 9),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.line.withValues(alpha: .72)),
       ),
       child: Column(
@@ -1610,7 +1589,7 @@ class _StatTile extends StatelessWidget {
             child: Text(value,
                 style: const TextStyle(
                     color: AppColors.ink,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900)),
           ),
         ],
@@ -1651,53 +1630,22 @@ class _RecentFiveGamePanel extends StatelessWidget {
   const _RecentFiveGamePanel({
     required this.games,
     required this.pitching,
-    required this.accent,
   });
 
   final List<Map<String, dynamic>> games;
   final bool pitching;
-  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    final ordered = games.take(10).toList().reversed.toList();
-    final values = ordered.map((game) {
-      if (pitching) {
-        final era = game['era_after_game'] as num?;
-        if (era != null) return era.toDouble();
-        final innings = (game['innings_pitched'] as num?)?.toDouble() ?? 0;
-        final earned = (game['earned_runs'] as num?)?.toDouble() ?? 0;
-        return innings <= 0 ? 0.0 : earned * 9 / innings;
-      }
-      final avg = game['avg_after_game'] as num?;
-      if (avg != null) return avg.toDouble();
-      final ab = (game['ab'] as num?)?.toDouble() ?? 0;
-      final hits = (game['h'] as num?)?.toDouble() ?? 0;
-      return ab <= 0 ? 0.0 : hits / ab;
-    }).toList();
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF4),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(
-          height: 126,
-          child: CustomPaint(
-            painter: _RecentLineChartPainter(values: values, color: accent),
-            child: const SizedBox.expand(),
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...ordered.map((game) => _RecentGameSummaryTile(
-              game: game,
-              pitching: pitching,
-              accent: accent,
-            )),
-      ]),
+    final recent = games.take(5).toList();
+    return Column(
+      children: recent.indexed
+          .map((entry) => _RecentGameSummaryTile(
+                game: entry.$2,
+                pitching: pitching,
+                showDivider: entry.$1 != recent.length - 1,
+              ))
+          .toList(),
     );
   }
 }
@@ -1706,41 +1654,46 @@ class _RecentGameSummaryTile extends StatelessWidget {
   const _RecentGameSummaryTile({
     required this.game,
     required this.pitching,
-    required this.accent,
+    required this.showDivider,
   });
 
   final Map<String, dynamic> game;
   final bool pitching;
-  final Color accent;
+  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
     final date = DateTime.parse(game['game_date'] as String);
     final dateText = '${date.month}.${date.day.toString().padLeft(2, '0')}';
     final value = pitching
-        ? '${game['innings_pitched']}이닝 · ${game['earned_runs']}자책 · ${game['strikeouts']}K'
-        : '${game['ab']}타수 ${game['h']}안타 · ${game['rbi']}타점 · ${game['bb']}볼넷';
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
+        ? '${game['innings_pitched']}이닝  ${game['earned_runs']}자책  ${game['strikeouts']}삼진'
+        : '${game['ab']}타수  ${game['h']}안타  ${game['rbi']}타점  ${game['bb']}볼넷';
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        border: showDivider
+            ? const Border(bottom: BorderSide(color: AppColors.line))
+            : null,
+      ),
       child: Row(children: [
         Container(
-          width: 54,
-          padding: const EdgeInsets.symmetric(vertical: 7),
+          width: 48,
+          padding: const EdgeInsets.symmetric(vertical: 6),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: accent.withValues(alpha: .1),
-            borderRadius: BorderRadius.circular(13),
+            color: const Color(0xFFF4F1EC),
+            borderRadius: BorderRadius.circular(9),
           ),
           child: Text(
             dateText,
-            style: TextStyle(
-              color: accent,
+            style: const TextStyle(
+              color: AppColors.ink,
               fontWeight: FontWeight.w900,
               fontSize: 12,
             ),
           ),
         ),
-        const SizedBox(width: 11),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1751,7 +1704,7 @@ class _RecentGameSummaryTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 value,
                 maxLines: 1,
@@ -1768,75 +1721,4 @@ class _RecentGameSummaryTile extends StatelessWidget {
       ]),
     );
   }
-}
-
-class _RecentLineChartPainter extends CustomPainter {
-  const _RecentLineChartPainter({required this.values, required this.color});
-
-  final List<double> values;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.isEmpty) return;
-    final maxValue =
-        values.fold<double>(1, (max, value) => value > max ? value : max);
-    final minValue = values.fold<double>(
-        maxValue, (min, value) => value < min ? value : min);
-    final range = (maxValue - minValue).abs() < .001 ? 1 : maxValue - minValue;
-    final chartRect = Rect.fromLTWH(8, 10, size.width - 16, size.height - 34);
-    final grid = Paint()
-      ..color = AppColors.line.withValues(alpha: .7)
-      ..strokeWidth = 1;
-    for (var i = 0; i < 4; i++) {
-      final y = chartRect.top + chartRect.height * i / 3;
-      canvas.drawLine(
-          Offset(chartRect.left, y), Offset(chartRect.right, y), grid);
-    }
-    final points = <Offset>[];
-    for (var i = 0; i < values.length; i++) {
-      final x = values.length == 1
-          ? chartRect.center.dx
-          : chartRect.left + chartRect.width * i / (values.length - 1);
-      final y = chartRect.bottom -
-          ((values[i] - minValue) / range) * chartRect.height;
-      points.add(Offset(x, y));
-    }
-    final line = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round;
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final point in points.skip(1)) {
-      path.lineTo(point.dx, point.dy);
-    }
-    canvas.drawPath(path, line);
-    for (final point in points) {
-      canvas.drawCircle(point, 4.5, Paint()..color = Colors.white);
-      canvas.drawCircle(
-          point,
-          4.5,
-          Paint()
-            ..color = color
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2);
-    }
-    final labelPainter = TextPainter(
-      text: TextSpan(
-        text: '최근 ERA ${values.last.toStringAsFixed(2)}',
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    labelPainter.paint(canvas, Offset(chartRect.right - labelPainter.width, 0));
-  }
-
-  @override
-  bool shouldRepaint(covariant _RecentLineChartPainter oldDelegate) =>
-      oldDelegate.values != values || oldDelegate.color != color;
 }
